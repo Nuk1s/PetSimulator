@@ -1,0 +1,311 @@
+local Players = game:GetService("Players")
+local cachedProfiles = {}
+local ProfileService = require(script.ProfileService)
+local PlayerData = require(script:WaitForChild("PlayerData"))
+local MarketService = game:GetService("MarketplaceService")
+local GameData = require(script.Parent:WaitForChild("GameData"))
+
+local Stats = PlayerData
+
+local PlayerProfileStore = ProfileService.GetProfileStore("PlayerSaveData[9]", Stats)
+
+local function PlayerDataLoaded(player)
+	local profile = cachedProfiles[player]
+	
+	local folder = Instance.new("Folder")
+	folder.Name = "leaderstats"
+	folder.Parent = player
+	
+	local Power = Instance.new("IntValue")
+	Power.Name = "Power"
+	Power.Value = profile.Data.Power
+	Power.Parent = folder
+	
+	local Coins = Instance.new("IntValue")
+	Coins.Name = "Coins"
+	Coins.Value = profile.Data.Coins
+	Coins.Parent = folder
+	
+	local Rebirths = Instance.new("IntValue")
+	Rebirths.Name = "Rebirths"
+	Rebirths.Value = profile.Data.Rebirths
+	Rebirths.Parent = folder
+	
+	local TimePlayed = Instance.new("IntValue")
+	TimePlayed.Name = "TimePlayed"
+	TimePlayed.Value = profile.Data.TimePlayed
+	TimePlayed.Parent = player
+	
+	local StoragePets = Instance.new("IntValue")
+	StoragePets.Name = "StoragePets"
+	StoragePets.Value = profile.Data.StoragePets
+	StoragePets.Parent = player
+	
+	local MaxStorage = Instance.new("IntValue")
+	MaxStorage.Name = "MaxStorage"
+	MaxStorage.Value = profile.Data.MaxStorage
+	MaxStorage.Parent = player
+	
+	local EquipPets = Instance.new("IntValue")
+	EquipPets.Name = "EquipPets"
+	EquipPets.Value = profile.Data.EquipPets
+	EquipPets.Parent = player
+
+	local MaxEquipped = Instance.new("IntValue")
+	MaxEquipped.Name = "MaxEquipped"
+	MaxEquipped.Value = profile.Data.MaxEquipped
+	MaxEquipped.Parent = player
+	
+	local Settings = Instance.new("Folder")
+	Settings.Name = "Settings"
+	Settings.Parent = player
+	
+	local AutoEgg = Instance.new("BoolValue")
+	AutoEgg.Name = "AutoEgg"
+	AutoEgg.Value = profile.Data.Gamepass.AutoEgg
+	AutoEgg.Parent = Settings
+	
+	local TripleEgg = Instance.new("BoolValue")
+	TripleEgg.Name = "TripleEgg"
+	TripleEgg.Value = profile.Data.Gamepass.TripleEgg
+	TripleEgg.Parent = Settings
+	
+	local Lucky = Instance.new("BoolValue")
+	Lucky.Name = "Lucky"
+	Lucky.Value = profile.Data.Gamepass.Lucky
+	Lucky.Parent = Settings
+	
+	local BoostRebirths = Instance.new("NumberPose")
+	BoostRebirths.Name = "BoostRebirths"
+	BoostRebirths.Value = profile.Data.Boost_Rebirths
+	BoostRebirths.Parent = Settings
+	
+	local Pop = Instance.new("BoolValue")
+	Pop.Name = "Pop"
+	Pop.Value = profile.Data.Pop
+	Pop.Parent = Settings
+	
+	if player:IsInGroup(GameData.Id_Group) then
+		profile.Data.Gamepass.AutoEgg = true
+		AutoEgg.Value = true		
+	else
+		profile.Data.Gamepass.AutoEgg = false
+		AutoEgg.Value = false
+	end
+	
+	
+	for i,v in pairs(GameData.Gamepass) do
+		if MarketService:UserOwnsGamePassAsync(player.UserId, i) then
+			profile.Data.Gamepass[v] = true
+			if v == "AddPets" or  v == "AddPets2" then
+				profile.Data.Gamepass.AddPets = true
+				local start = 3
+				if profile.Data.Gamepass.AddPets then
+					start += 1
+				end
+				if profile.Data.Gamepass.AddPets2 then
+					start += 2
+				end
+				profile.Data.MaxEquipped = start
+			elseif v == "AddStorage" or  v == "AddStorage2" then
+				profile.Data.Gamepass.AddStorage = true
+				local start = 25
+				if profile.Data.Gamepass.AddStorage == true then
+					start += 25
+				end
+				if profile.Data.Gamepass.AddStorage2 == true then
+					start += 100
+				end
+				profile.Data.MaxStorage = start
+			elseif v == "Bomba" then
+				if not table.find(profile.Data.Bombs, "Atomic Bomb") then
+					table.insert(profile.Data.Bombs, "Atomic Bomb")
+				end
+			end
+		end
+	end
+	
+--[[	if MarketService:UserOwnsGamePassAsync(player.UserId, 188098708) then
+		profile.Data.Gamepass.TripleEgg = true
+		
+	elseif MarketService:UserOwnsGamePassAsync(player.UserId, 188099133) then
+		profile.Data.Gamepass.Lucky = true
+		
+	elseif MarketService:UserOwnsGamePassAsync(player.UserId, 188371450) then
+		profile.Data.Gamepass.DoublePower = true
+		
+	elseif MarketService:UserOwnsGamePassAsync(player.UserId, 188098546) then
+		profile.Data.Gamepass.DoubleCoins = true
+		
+	elseif MarketService:UserOwnsGamePassAsync(player.UserId, 188098899) then
+		profile.Data.Gamepass.AddPets = true
+		local start = 3
+		if profile.Data.Gamepass.AddPets then
+			start += 1
+		end
+		if profile.Data.Gamepass.AddPets2 then
+			start += 2
+		end
+		profile.Data.MaxEquipped = start
+		
+	elseif MarketService:UserOwnsGamePassAsync(player.UserId, 188098801) then
+		profile.Data.Gamepass.AddPets2 = true
+		local start = 3
+		if profile.Data.Gamepass.AddPets then
+			start += 1
+		end
+		if profile.Data.Gamepass.AddPets2 then
+			start += 2
+		end
+		profile.Data.MaxEquipped = start
+		
+	elseif MarketService:UserOwnsGamePassAsync(player.UserId, 188098992) then
+		profile.Data.Gamepass.AddStorage = true
+		local start = 25
+		if profile.Data.Gamepass.AddStorage == true then
+			start += 25
+		end
+		if profile.Data.Gamepass.AddStorage2 == true then
+			start += 100
+		end
+		profile.Data.MaxStorage = start
+		
+	elseif MarketService:UserOwnsGamePassAsync(player.UserId, 188099073) then
+		profile.Data.Gamepass.AddStorage2 = true
+		local start = 25
+		if profile.Data.Gamepass.AddStorage == true then
+			start += 25
+		end
+		if profile.Data.Gamepass.AddStorage2 == true then
+			start += 100
+		end
+		profile.Data.MaxStorage = start
+		
+	elseif MarketService:UserOwnsGamePassAsync(player.UserId, 188099384) then
+		profile.Data.Gamepass.Bomba = true
+		if not table.find(profile.Data.Gloves, "Atomic Bomb") then
+			table.insert(profile.Data.Gloves, "Atomic Bomb")
+		end
+	end]]
+	
+	local folder = game.ReplicatedStorage:WaitForChild("Settings"):WaitForChild("PlayerTemplate"):Clone()
+	folder.Name = player.Name
+	folder.Parent = game.ReplicatedStorage:WaitForChild("Players")
+	
+	local newfolder = Instance.new("Folder")
+	newfolder.Name = player.Name
+	newfolder.Parent = workspace:WaitForChild("Pets"):WaitForChild("ServerPets")
+	
+	local newfolder2 = Instance.new("Folder")
+	newfolder2.Name = player.Name
+	newfolder2.Parent = workspace:WaitForChild("Pets"):WaitForChild("ClientPets")	
+	
+	local debounce = game.ReplicatedStorage:WaitForChild("Settings"):WaitForChild("DebouncePlr"):Clone()
+	debounce.Name = player.Name
+	debounce.Parent = game:GetService("ServerStorage"):WaitForChild("Debounce")
+	
+	local function CheckLocation()
+		for i,info in pairs(GameData.Worlds) do
+			if profile.Data.Coins >= info[2] and not table.find(profile.Data.Location, i) then
+				--print(i.." Open")
+				table.insert(profile.Data.Location, i)
+			end
+		end
+		
+		for i,v in pairs(profile.Data.Location) do
+			game:GetService("ReplicatedStorage"):WaitForChild("RemoteEvents"):WaitForChild("OpenLocation"):FireClient(player, v, false)
+		end
+	end	
+	
+	CheckLocation()
+	
+	Coins:GetPropertyChangedSignal("Value"):Connect(function()
+		for i,info in pairs(GameData.Worlds) do
+			if profile.Data.Coins >= info[2] and not table.find(profile.Data.Location, i) then
+				--print(i.." Open")
+				table.insert(profile.Data.Location, i)
+				game:GetService("ReplicatedStorage"):WaitForChild("RemoteEvents"):WaitForChild("OpenLocation"):FireClient(player, i, true)
+			end
+		end
+	end)
+	
+	task.spawn(function()
+		while true do
+			local profile = cachedProfiles[player]
+			
+			if profile ~= nil then
+				task.spawn(function()
+					Power.Value = profile.Data.Power
+					Coins.Value = profile.Data.Coins
+					Rebirths.Value = profile.Data.Rebirths
+					TimePlayed.Value = profile.Data.TimePlayed
+					MaxStorage.Value = profile.Data.MaxStorage
+					StoragePets.Value = profile.Data.StoragePets
+					AutoEgg.Value = profile.Data.Gamepass.AutoEgg
+					TripleEgg.Value = profile.Data.Gamepass.TripleEgg
+					BoostRebirths.Value = profile.Data.Boost_Rebirths
+					EquipPets.Value = profile.Data.EquipPets
+					MaxEquipped.Value = profile.Data.MaxEquipped
+					Lucky.Value = profile.Data.Gamepass.Lucky
+					Pop.Value = profile.Data.Pop
+				end)
+				
+				folder.Boosts.CoinBoost.Use.Value = profile.Data.Boosts.CoinBoost.Use
+				folder.Boosts.CoinBoost.Times.Value = profile.Data.Boosts.CoinBoost.Times
+
+				folder.Boosts.PowerBoost.Use.Value = profile.Data.Boosts.PowerBoost.Use
+				folder.Boosts.PowerBoost.Times.Value = profile.Data.Boosts.PowerBoost.Times
+
+				folder.Boosts.LuckyBoost.Use.Value = profile.Data.Boosts.LuckyBoost.Use
+				folder.Boosts.LuckyBoost.Times.Value = profile.Data.Boosts.LuckyBoost.Times
+				
+				folder.AutoDelete.Common.Value = profile.Data.AutoRarity.Common
+				folder.AutoDelete.Rare.Value = profile.Data.AutoRarity.Rare
+				folder.AutoDelete.Epic.Value = profile.Data.AutoRarity.Epic
+				folder.AutoDelete.Legendary.Value = profile.Data.AutoRarity.Legendary
+				
+			else
+				break
+			end
+			
+			task.wait(0.1)
+		end
+	end)
+	 
+end
+
+local function PlayerAdded(player)
+	local profile = PlayerProfileStore:LoadProfileAsync("Player_" .. player.UserId, "ForceLoad")
+	
+	if profile ~= nil then
+		profile:ListenToRelease(function()
+			cachedProfiles[player] = nil
+			player:Kick("Your profile has been loaded remotely. Please rejoin.")
+		end)
+		
+		if player:IsDescendantOf(Players) then
+			cachedProfiles[player] = profile
+			PlayerDataLoaded(player)
+		else
+			profile:Release()
+		end
+	else
+		player:Kick("Unable to load saved data. Please rejoin.")
+	end
+end
+
+for _, player in ipairs(Players:GetPlayers()) do
+	spawn(function()
+		PlayerAdded(player)
+	end)
+end
+
+Players.PlayerAdded:Connect(PlayerAdded)
+Players.PlayerRemoving:Connect(function(player)
+	local profile = cachedProfiles[player]
+	if profile ~= nil then
+		profile:Release()
+	end
+end)
+
+return cachedProfiles

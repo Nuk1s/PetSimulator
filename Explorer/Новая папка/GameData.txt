@@ -1,0 +1,989 @@
+local module = {
+	
+	Id_Group = 11507374; 
+	
+	ColorRarity = {
+		["Common"] = Color3.fromRGB(255, 255, 255);
+		["Rare"] = Color3.fromRGB(85, 170, 0);
+		["Epic"] = Color3.fromRGB(170, 85, 255);
+		["Legendary"] = Color3.fromRGB(255, 170, 0);
+		["Mythical"] = Color3.fromRGB(255, 0, 0);
+		["Exclusive"] = Color3.fromRGB(0, 170, 255);
+	};
+
+	RarityEgg = {
+		["Common"] = {Color3.fromRGB(255, 255, 255), Color3.fromRGB(132, 132, 132)};
+		["Rare"] = {Color3.fromRGB(85, 170, 0), Color3.fromRGB(42, 84, 0)};
+		["Epic"] = {Color3.fromRGB(170, 85, 255), Color3.fromRGB(77, 38, 115)};
+		["Legendary"] = {Color3.fromRGB(255, 170, 0), Color3.fromRGB(108, 72, 0)};
+		["Mythical"] = {Color3.fromRGB(255, 0, 0), Color3.fromRGB(116, 0, 0)};
+		["Exclusive"] = {Color3.fromRGB(0, 170, 255), Color3.fromRGB(0, 77, 115)};
+	};
+	
+	IdIcons = {
+		Coins = {"rbxassetid://13624929013"};
+		Power = {"rbxassetid://13624950049"};
+		Robux = {"rbxassetid://13260551852"};
+	};
+	
+	Boosts = {
+		[1556342366] = {
+			Name = "LuckyBoost";
+			Time = 900;
+		};
+		[1556342220] = {
+			Name = "PowerBoost";
+			Time = 1200;
+		};
+		[1556340526] = {
+			Name = "CoinBoost";
+			Time = 1200;
+		};
+	};
+	
+	Quest = {
+		
+		["Power"] = {
+			Currensy = "TotalPower";
+			Text = "Get N/A Total Power";
+			Icon = "rbxassetid://13624950049";
+			Typ = {
+				[1] = {
+					Amount = 1000;
+					Prize = {"10m", "rbxassetid://13624994045"};
+					Reward = function(plr)
+						local ProfileService = require(game.ReplicatedStorage.Modules:WaitForChild("ProfileData"))
+						local RS = game:GetService("ReplicatedStorage")
+						local RemoteEvents = RS:WaitForChild("RemoteEvents")
+						local profile = ProfileService[plr]
+						if profile then
+							local add = 10 * 60
+							profile.Data.Boosts.PowerBoost.Times += add
+							RemoteEvents:WaitForChild("AddGui"):FireClient(plr, "PowerTime", "10m")
+						end
+					end;
+				};
+				[2] = {
+					Amount = 5000;
+					Prize = {"+1", "rbxassetid://13624994045"};
+					Reward = function(plr)
+						local ProfileService = require(game.ReplicatedStorage.Modules:WaitForChild("ProfileData"))
+						local RS = game:GetService("ReplicatedStorage")
+						local RemoteEvents = RS:WaitForChild("RemoteEvents")
+						local profile = ProfileService[plr]
+						if profile then
+							local add = 1
+							profile.Data.Boosts.PowerBoost.Use += add
+							RemoteEvents:WaitForChild("AddGui"):FireClient(plr, "PowerBoost", add)
+						end
+					end;
+				};	
+				[3] = {
+					Amount = 25000;
+					Prize = {"x1.1", "rbxassetid://13624950049"};
+					Reward = function(plr)
+						local ProfileService = require(game.ReplicatedStorage.Modules:WaitForChild("ProfileData"))
+						local RS = game:GetService("ReplicatedStorage")
+						local RemoteEvents = RS:WaitForChild("RemoteEvents")
+						local profile = ProfileService[plr]
+						if profile then
+							local add = 0.1
+							profile.Data.PowerX += add
+						end
+					end;
+				};
+				[4] = {
+					Amount = 75250;
+					Prize = {"x1.25", "rbxassetid://13624950049"};
+					Reward = function(plr)
+						local ProfileService = require(game.ReplicatedStorage.Modules:WaitForChild("ProfileData"))
+						local RS = game:GetService("ReplicatedStorage")
+						local RemoteEvents = RS:WaitForChild("RemoteEvents")
+						local profile = ProfileService[plr]
+						if profile then
+							local add = 0.25
+							profile.Data.PowerX += add
+						end
+					end;
+				};
+			}
+		};
+		
+		["Rebirths"] = {
+			Currensy = "Rebirths";
+			Text = "Get N/A Rebirths";
+			Icon = "rbxassetid://13624920946";
+			Typ = {
+				[1] = {
+					Amount = 1;
+					Prize = {"+2K", "rbxassetid://13624950049"};
+					Reward = function(plr)
+						local ProfileService = require(game.ReplicatedStorage.Modules:WaitForChild("ProfileData"))
+						local RS = game:GetService("ReplicatedStorage")
+						local RemoteEvents = RS:WaitForChild("RemoteEvents")
+						local profile = ProfileService[plr]
+						if profile then
+							local add = 2000
+							profile.Data.Power += add
+							RemoteEvents:WaitForChild("AddGui"):FireClient(plr, "Power2", add)
+						end
+					end;
+				};
+				[2] = {
+					Amount = 5;
+					Prize = {"+1", "rbxassetid://13624994045"};
+					Reward = function(plr)
+						local ProfileService = require(game.ReplicatedStorage.Modules:WaitForChild("ProfileData"))
+						local RS = game:GetService("ReplicatedStorage")
+						local RemoteEvents = RS:WaitForChild("RemoteEvents")
+						local profile = ProfileService[plr]
+						if profile then
+							local add = 1
+							profile.Data.Boosts.PowerBoost.Use += add
+							RemoteEvents:WaitForChild("AddGui"):FireClient(plr, "PowerBoost", add)
+						end
+					end;
+				};	
+				[3] = {
+					Amount = 10;
+					Prize = {"+2", "rbxassetid://13641164414"};
+					Reward = function(plr)
+						local ProfileService = require(game.ReplicatedStorage.Modules:WaitForChild("ProfileData"))
+						local RS = game:GetService("ReplicatedStorage")
+						local RemoteEvents = RS:WaitForChild("RemoteEvents")
+						local profile = ProfileService[plr]
+						if profile then
+							local add = 2
+							profile.Data.Boosts.CoinBoost.Use += add
+							RemoteEvents:WaitForChild("AddGui"):FireClient(plr, "CoinBoost", add)
+						end
+					end;
+				};
+				[4] = {
+					Amount = 25;
+					Prize = {"x1.25", "rbxassetid://13624950049"};
+					Reward = function(plr)
+						local ProfileService = require(game.ReplicatedStorage.Modules:WaitForChild("ProfileData"))
+						local RS = game:GetService("ReplicatedStorage")
+						local RemoteEvents = RS:WaitForChild("RemoteEvents")
+						local profile = ProfileService[plr]
+						if profile then
+							local add = 0.25
+							profile.Data.PowerX += add
+						end
+					end;
+				};
+			}
+		};
+		
+	};	
+	
+	Codes = {
+		["Release"] = function(plr, arg)
+			local ProfileService = require(game.ReplicatedStorage.Modules:WaitForChild("ProfileData"))
+			local RS = game:GetService("ReplicatedStorage")
+			local RemoteEvents = RS:WaitForChild("RemoteEvents")
+			local profile = ProfileService[plr]
+			if profile then
+				profile.Data.Power += 500
+				profile.Data.Coins += 50000
+				RemoteEvents:WaitForChild("AddGui"):FireClient(plr, "Power2", 500)
+				RemoteEvents:WaitForChild("AddGui"):FireClient(plr, "Coins", 50000)
+			end
+		end;
+		["dimer"] = function(plr, arg)
+			local pet_name = "Dimer"
+			local PetHandler = require(game.ReplicatedStorage:WaitForChild("Modules"):WaitForChild("PetHandler"))
+			local RS = game:GetService("ReplicatedStorage")
+			local RemoteEvents = RS:WaitForChild("RemoteEvents")
+
+			PetHandler:AddPet(plr, pet_name, false)
+			RemoteEvents:WaitForChild("AddGui"):FireClient(plr, "Pet", pet_name)
+		end
+	};	
+	
+	Pets = {
+		["Basic Cat"] = {
+			PowerBoost = 1.05; 
+			Rarity = "Common";
+			Secret = false;
+			Delete = true;
+			Pos = 1;
+			Rotate = 180;
+			PosPng = 3.5;
+			CanCraft = true;
+			Craft = "Normal";
+			CanFly = true;
+			Height = 0.6;
+			UIPos = 2;
+		};
+		
+		["Basic Dog"] = {
+			PowerBoost = 1.05; 
+			Rarity = "Rare";
+			Secret = false;
+			Delete = true;
+			Pos = 1;
+			Rotate = 180;
+			PosPng = 3.5;
+			CanCraft = true;
+			Craft = "Normal";
+			CanFly = true;
+			Height = 0.6;
+			UIPos = 2;
+		};
+		
+		["Basic Golem"] = {
+			PowerBoost = 1.15; 
+			Rarity = "Epic";
+			Secret = false;
+			Delete = true;
+			Pos = 1;
+			Rotate = 180;
+			PosPng = 3.5;
+			CanCraft = true;
+			Craft = "Normal";
+			CanFly = true;
+			Height = 0.6;
+			UIPos = 2;
+		};
+
+		["Green Dragon"] = {
+			PowerBoost = 4; 
+			Rarity = "Exclusive";
+			Secret = false;
+			Delete = true;
+			Pos = 1;
+			Rotate = 180;
+			PosPng = 3.5;
+			CanCraft = true;
+			Craft = "Normal";
+			CanFly = true;
+			Height = 0.6;
+			UIPos = 2;
+		};
+
+		["Basic Camel"] = {
+			PowerBoost = 1.5; 
+			Rarity = "Common";
+			Secret = false;
+			Delete = true;
+			Pos = 1;
+			Rotate = 180;
+			PosPng = 3.5;
+			CanCraft = true;
+			Craft = "Normal";
+			CanFly = true;
+			Height = 0.6;
+			UIPos = 2;
+		};
+
+		["Basic Spider"] = {
+			PowerBoost = 1.65; 
+			Rarity = "Rare";
+			Secret = false;
+			Delete = true;
+			Pos = 1;
+			Rotate = 180;
+			PosPng = 3.5;
+			CanCraft = true;
+			Craft = "Normal";
+			CanFly = true;
+			Height = 0.6;
+			UIPos = 2;
+		};
+
+		["Basic Slime"] = {
+			PowerBoost = 1.80; 
+			Rarity = "Epic";
+			Secret = false;
+			Delete = true;
+			Pos = 1;
+			Rotate = 180;
+			PosPng = 3.5;
+			CanCraft = true;
+			Craft = "Normal";
+			CanFly = true;
+			Height = 0.6;
+			UIPos = 2;
+		
+		};
+		
+		["Basic Panda"] = {
+			PowerBoost = 2.75; 
+			Rarity = "Common";
+			Secret = false;
+			Delete = true;
+			Pos = 1;
+			Rotate = 180;
+			PosPng = 3.5;
+			CanCraft = true;
+			Craft = "Normal";
+			CanFly = true;
+			Height = 0.6;
+			UIPos = 2;
+		};
+
+		["Basic Bear"] = {
+			PowerBoost = 3.1; 
+			Rarity = "Rare";
+			Secret = false;
+			Delete = true;
+			Pos = 1;
+			Rotate = 180;
+			PosPng = 3.5;
+			CanCraft = true;
+			Craft = "Normal";
+			CanFly = true;
+			Height = 0.6;
+			UIPos = 2;
+		};
+
+		["Basic Pig"] = {
+			PowerBoost = 3.75; 
+			Rarity = "Epic";
+			Secret = false;
+			Delete = true;
+			Pos = 1;
+			Rotate = 180;
+			PosPng = 3.5;
+			CanCraft = true;
+			Craft = "Normal";
+			CanFly = true;
+			Height = 0.6;
+			UIPos = 2;	
+		};
+		
+		["Fish Orange"] = {
+			PowerBoost = 2; 
+			Rarity = "Common";
+			Secret = false;
+			Delete = true;
+			Pos = 1;
+			Rotate = 180;
+			PosPng = 3.5;
+			CanCraft = true;
+			Craft = "Normal";
+			CanFly = true;
+			Height = 0.6;
+			UIPos = 2;
+		};
+
+		["Fish Green"] = {
+			PowerBoost = 2.3; 
+			Rarity = "Rare";
+			Secret = false;
+			Delete = true;
+			Pos = 1;
+			Rotate = 180;
+			PosPng = 3.5;
+			CanCraft = true;
+			Craft = "Normal";
+			CanFly = true;
+			Height = 0.6;
+			UIPos = 2;
+		};
+
+		["Shark"] = {
+			PowerBoost = 2.55; 
+			Rarity = "Epic";
+			Secret = false;
+			Delete = true;
+			Pos = 1;
+			Rotate = 180;
+			PosPng = 3.5;
+			CanCraft = true;
+			Craft = "Normal";
+			CanFly = true;
+			Height = 0.6;
+			UIPos = 2;
+			
+		};
+		
+		["Lava Cat"] = {
+			PowerBoost = 4; 
+			Rarity = "Common";
+			Secret = false;
+			Delete = true;
+			Pos = 1;
+			Rotate = 180;
+			PosPng = 3.5;
+			CanCraft = true;
+			Craft = "Normal";
+			CanFly = true;
+			Height = 0.6;
+			UIPos = 2;
+		};
+
+		["Lava Dog"] = {
+			PowerBoost = 4.3; 
+			Rarity = "Rare";
+			Secret = false;
+			Delete = true;
+			Pos = 1;
+			Rotate = 180;
+			PosPng = 3.5;
+			CanCraft = true;
+			Craft = "Normal";
+			CanFly = true;
+			Height = 0.6;
+			UIPos = 2;
+		};
+
+		["Lava Camel"] = {
+			PowerBoost = 4.75; 
+			Rarity = "Epic";
+			Secret = false;
+			Delete = true;
+			Pos = 1;
+			Rotate = 180;
+			PosPng = 3.5;
+			CanCraft = true;
+			Craft = "Normal";
+			CanFly = true;
+			Height = 0.6;
+			UIPos = 2;
+		};
+
+		["Polar Bear"] = {
+			PowerBoost = 4; 
+			Rarity = "Common";
+			Secret = false;
+			Delete = true;
+			Pos = 1;
+			Rotate = 180;
+			PosPng = 3.5;
+			CanCraft = true;
+			Craft = "Normal";
+			CanFly = true;
+			Height = 0.6;
+			UIPos = 2;
+		};
+
+		["Black Bear"] = {
+			PowerBoost = 4.3; 
+			Rarity = "Rare";
+			Secret = false;
+			Delete = true;
+			Pos = 1;
+			Rotate = 180;
+			PosPng = 3.5;
+			CanCraft = true;
+			Craft = "Normal";
+			CanFly = true;
+			Height = 0.6;
+			UIPos = 2;
+		};
+
+		["Basic Deer"] = {
+			PowerBoost = 4.75; 
+			Rarity = "Epic";
+			Secret = false;
+			Delete = true;
+			Pos = 1;
+			Rotate = 180;
+			PosPng = 3.5;
+			CanCraft = true;
+			Craft = "Normal";
+			CanFly = true;
+			Height = 0.6;
+			UIPos = 2;
+		};
+		
+		["Explosive Hydro"] = {
+			PowerBoost = 10; 
+			Rarity = "Exclusive";
+			Secret = false;
+			Delete = true;
+			Pos = 1;
+			Rotate = 180;
+			PosPng = 3.5;
+			CanCraft = true;
+			Craft = "Normal";
+			CanFly = true;
+			Height = 0.6;
+			UIPos = 4;
+		};
+
+		["Dimer"] = {
+			PowerBoost = 20000000000000; 
+			Rarity = "Exclusive";
+			Secret = false;
+			Delete = true;
+			Pos = 1;
+			Rotate = 180;
+			PosPng = 3.5;
+			CanCraft = true;
+			Craft = "Normal";
+			CanFly = true;
+			Height = 0.6;
+			UIPos = 2;
+		};
+	};
+	
+	Eggs = {
+		["Basic"] = {
+			Pos = 1;
+			Price = 1;
+			Currensy = "Coins";
+			Active = true;
+			Pets = {
+				["Basic Cat"] = {50, 1};
+				["Basic Dog"] = {35, 2};
+				["Basic Golem"] = {15, 3};
+			}
+		};
+		
+		["Desert"] = {
+			Pos = 2;
+			Price = 1;
+			Currensy = "Coins";
+			Active = true;
+			Pets = {
+				["Basic Camel"] = {50, 1};
+				["Basic Spider"] = {35, 2};
+				["Basic Slime"] = {15, 3};
+			}
+		};
+		
+			["Candy"] = {
+			Pos = 4;
+			Price = 1;
+			Currensy = "Coins";
+			Active = true;
+			Pets = {
+				["Basic Panda"] = {50, 1};
+				["Basic Bear"] = {35, 2};
+				["Basic Pig"] = {15, 3};
+			}
+		};
+		
+		["Ocean"] = {
+			Pos = 3;
+			Price = 1;
+			Currensy = "Coins";
+			Active = true;
+			Pets = {
+				["Fish Orange"] = {50, 1};
+				["Fish Green"] = {35, 2};
+				["Shark"] = {15, 3};
+			}
+		};
+		
+		["Lava"] = {
+			Pos = 5;
+			Price = 1;
+			Currensy = "Coins";
+			Active = true;
+			Pets = {
+				["Lava Cat"] = {50, 1};
+				["Lava Dog"] = {35, 2};
+				["Lava Camel"] = {15, 3};
+
+			}
+		};
+		
+		--[[["Snow"] = {
+			Pos = 5;
+			Price = 1;
+			Currensy = "Coins";
+			Active = true;
+			Pets = {
+				["Polar Bear"] = {50, 1};
+				["Black Bear"] = {35, 2};
+				["Basic Deer"] = {15, 3};
+
+			}
+		};]]
+		
+		
+	};	
+	
+	Gifts = {
+		["Gift1"] = {
+			Reward = function(plr)
+				local ProfileService = require(game.ReplicatedStorage.Modules:WaitForChild("ProfileData"))
+				local RS = game:GetService("ReplicatedStorage")
+				local RemoteEvents = RS:WaitForChild("RemoteEvents")
+				local profile = ProfileService[plr]
+				if profile then
+					local add = 50
+					profile.Data.Power += add
+					profile.Data.TotalPower += add
+					RemoteEvents:WaitForChild("AddGui"):FireClient(plr, "Power2", add)
+				end
+			end,
+			Time = 20; -- 100 
+		};
+		["Gift2"] = {
+			Reward = function(plr)
+				local ProfileService = require(game.ReplicatedStorage.Modules:WaitForChild("ProfileData"))
+				local RS = game:GetService("ReplicatedStorage")
+				local RemoteEvents = RS:WaitForChild("RemoteEvents")
+				local profile = ProfileService[plr]
+				if profile then
+					local add = 150
+					profile.Data.Power += add
+					profile.Data.TotalPower += add
+					RemoteEvents:WaitForChild("AddGui"):FireClient(plr, "Power2", add)
+				end
+			end,
+			Time = 25;  -- 180
+		};
+		["Gift3"] = {
+			Reward = function(plr)
+				local ProfileService = require(game.ReplicatedStorage.Modules:WaitForChild("ProfileData"))
+				local RS = game:GetService("ReplicatedStorage")
+				local RemoteEvents = RS:WaitForChild("RemoteEvents")
+				local profile = ProfileService[plr]
+				if profile then
+					local add = 3
+					profile.Data.Coins += add
+					profile.Data.TotalCoins += add
+					RemoteEvents:WaitForChild("AddGui"):FireClient(plr, "Coins", add)
+				end
+			end,
+			Time = 900; 
+		};
+		["Gift4"] = {
+			Reward = function(plr)
+				local ProfileService = require(game.ReplicatedStorage.Modules:WaitForChild("ProfileData"))
+				local RS = game:GetService("ReplicatedStorage")
+				local RemoteEvents = RS:WaitForChild("RemoteEvents")
+				local profile = ProfileService[plr]
+				if profile then
+					local add = 750
+					profile.Data.Power += add
+					profile.Data.TotalPower += add
+					RemoteEvents:WaitForChild("AddGui"):FireClient(plr, "Power2", add)
+				end
+			end,
+			Time = 1200; 
+		};
+		["Gift5"] = {
+			Reward = function(plr)
+				local ProfileService = require(game.ReplicatedStorage.Modules:WaitForChild("ProfileData"))
+				local RS = game:GetService("ReplicatedStorage")
+				local RemoteEvents = RS:WaitForChild("RemoteEvents")
+				local profile = ProfileService[plr]
+				if profile then
+					local add = 5
+					profile.Data.Coins += add
+					profile.Data.TotalCoins += add
+					RemoteEvents:WaitForChild("AddGui"):FireClient(plr, "Coins", add)
+				end
+			end,
+			Time = 1800;
+		};
+		["Gift6"] = {
+			Reward = function(plr)
+				local ProfileService = require(game.ReplicatedStorage.Modules:WaitForChild("ProfileData"))
+				local RS = game:GetService("ReplicatedStorage")
+				local RemoteEvents = RS:WaitForChild("RemoteEvents")
+				local profile = ProfileService[plr]
+				if profile then
+					local add = 10 * 60
+					profile.Data.Boosts.PowerBoost.Times += add
+					RemoteEvents:WaitForChild("AddGui"):FireClient(plr, "PowerTime", "10m")
+				end
+			end,
+			Time = 2000;
+		};
+		["Gift7"] = {
+			Reward = function(plr)
+				local ProfileService = require(game.ReplicatedStorage.Modules:WaitForChild("ProfileData"))
+				local RS = game:GetService("ReplicatedStorage")
+				local RemoteEvents = RS:WaitForChild("RemoteEvents")
+				local profile = ProfileService[plr]
+				if profile then
+					local add = 1350
+					profile.Data.Power += add
+					profile.Data.TotalPower += add
+					RemoteEvents:WaitForChild("AddGui"):FireClient(plr, "Power2", add)
+				end
+			end,
+			Time = 3000;
+		};
+		["Gift8"] = {
+			Reward = function(plr)
+				local ProfileService = require(game.ReplicatedStorage.Modules:WaitForChild("ProfileData"))
+				local RS = game:GetService("ReplicatedStorage")
+				local Boosts = {"CoinBoost", "PowerBoost", "LuckyBoost"}
+				local boost = Boosts[math.random(1, #Boosts)]
+				local RemoteEvents = RS:WaitForChild("RemoteEvents")
+				local profile = ProfileService[plr]
+				if profile then
+					local add = 1
+					profile.Data.Boosts[boost].Use += add
+					RemoteEvents:WaitForChild("AddGui"):FireClient(plr, boost, add)
+				end
+			end,
+			Time = 5100;
+		};
+		["Gift9"] = {
+			Reward = function(plr)
+				local ProfileService = require(game.ReplicatedStorage.Modules:WaitForChild("ProfileData"))
+				local RS = game:GetService("ReplicatedStorage")
+				local RemoteEvents = RS:WaitForChild("RemoteEvents")
+				local profile = ProfileService[plr]
+				if profile then
+					local add = 10
+					profile.Data.Coins += add
+					profile.Data.TotalCoins += add
+					RemoteEvents:WaitForChild("AddGui"):FireClient(plr, "Coins", add)
+				end
+			end,
+			Time = 7200; 
+		};
+		["Gift10"] = {
+			Reward = function(plr)
+				local pet_name = "Green Dragon"
+				local PetHandler = require(game.ReplicatedStorage:WaitForChild("Modules"):WaitForChild("PetHandler"))
+				local RS = game:GetService("ReplicatedStorage")
+				local RemoteEvents = RS:WaitForChild("RemoteEvents")
+
+				PetHandler:AddPet(plr, pet_name, false)
+				RemoteEvents:WaitForChild("AddGui"):FireClient(plr, "Pet", pet_name)
+			end,
+			Time = 9000;
+		};
+		["Gift11"] = {
+			Reward = function(plr)
+				local ProfileService = require(game.ReplicatedStorage.Modules:WaitForChild("ProfileData"))
+				local RS = game:GetService("ReplicatedStorage")
+				local RemoteEvents = RS:WaitForChild("RemoteEvents")
+				local profile = ProfileService[plr]
+				if profile then
+					local add = 1
+					profile.Data.Boosts.CoinBoost.Use += add
+					RemoteEvents:WaitForChild("AddGui"):FireClient(plr, "CoinBoost", add)
+				end
+			end,
+			Time = 11400; 
+		};
+		["Gift12"] = {
+			Reward = function(plr)
+				local ProfileService = require(game.ReplicatedStorage.Modules:WaitForChild("ProfileData"))
+				local RS = game:GetService("ReplicatedStorage")
+				local Boosts = {"CoinBoost", "PowerBoost", "LuckyBoost"}
+				local boost = Boosts[math.random(1, #Boosts)]
+				local RemoteEvents = RS:WaitForChild("RemoteEvents")
+				local profile = ProfileService[plr]
+				if profile then
+					local add = 2
+					profile.Data.Boosts[boost].Use += add
+					RemoteEvents:WaitForChild("AddGui"):FireClient(plr, boost, add)
+				end
+			end,
+			Time = 12600; 
+		};
+	};
+	
+	DailyReward = {
+		["Power"] = function(plr)
+			local ProfileService = require(game.ReplicatedStorage.Modules:WaitForChild("ProfileData"))
+			local RS = game:GetService("ReplicatedStorage")
+			local RemoteEvents = RS:WaitForChild("RemoteEvents")
+			local profile = ProfileService[plr]
+			if profile then
+				local add = math.random(25,30)
+				if profile.Data.Power > 250 then
+					add = math.floor(profile.Data.Power/10)
+				end
+				profile.Data.Power += add
+				profile.Data.TotalPower += add
+				RemoteEvents:WaitForChild("AddGui"):FireClient(plr, "Power2", add)
+			end
+		end;
+		["Coins"] = function(plr)
+			local ProfileService = require(game.ReplicatedStorage.Modules:WaitForChild("ProfileData"))
+			local RS = game:GetService("ReplicatedStorage")
+			local RemoteEvents = RS:WaitForChild("RemoteEvents")
+			local profile = ProfileService[plr]
+			if profile then
+				local add = math.random(1,3)
+				if profile.Data.Coins > 30 then
+					add = math.floor(profile.Data.Coins/10)
+				end
+				profile.Data.Coins += add
+				profile.Data.TotalCoins += add
+				RemoteEvents:WaitForChild("AddGui"):FireClient(plr, "Coins", add)
+			end
+		end;
+		["Boost"] = function(plr)
+			print("boost")
+		end;
+		["Pet"] = function(plr)
+			print("pet")
+		end;
+	};
+	
+	Gamepass = {
+		[188098546] = "DoubleCoins";
+		[188098708] = "TripleEgg";
+		[188098899] = "AddPets";
+		[188098801] = "AddPets2";
+		[188098992] = "AddStorage";
+		[188099073] = "AddStorage2";
+		[188099133] = "Lucky";
+		[188099384] = "Bomba";
+		[188371450] = "DoublePower";
+	};
+	
+	Coins = {
+		[1556734421] = {15};
+		[1556734815] = {100};
+		[1556734898] = {350};
+		[1556735010] = {750};
+		[1556735092] = {1500};
+		[1556735200] = {5000};
+	};
+	
+	RestartBomb = 0.55;
+	
+	Worlds = {
+		["World1"] = {1, 0, "Spawn", 1}; -- // Coins Give, Price, Name Area
+		["World2"] = {3, 10, "Desert", 2};
+		["World3"] = {8, 75, "Candy", 3};
+		["World4"] = {15, 250, "Ocean", 4};
+		["World5"] = {25, 600, "Volcan", 5};
+	};
+
+	TexturesWalls = {
+		12624890209; -- Stone	
+		12624800117; -- Dirt
+		12625056652; -- Board
+		13690098755; -- Stone2
+		13690103765; -- Stone3
+		13690121519; -- Sand
+		13690127405; -- Stone4
+		13690114567; -- Flower
+		13713514050; -- Stone5
+		13713516572; -- Stonediamond
+		13713524656; -- Flower
+		13747441670 ; -- 
+		13747440268  ; -- 
+		13747457449 ; -- 
+
+	};	
+	
+	Bombs = {
+		["Atomic Bomb"] = {
+			Price = 188099384;
+			Boost = 3;
+			Currensy = "Robux";
+			Title = 5; -- "+0% DMG"
+		};
+		["Bomb"] = {
+			Price = 0;
+			Boost = 1;
+			Currensy = "Coins";
+			Title = 0; -- "+0% DMG"
+		};
+		["Bomb Red"] = {
+			Price = 10;
+			Boost = 1.1;
+			Currensy = "Coins";
+			Title = 2; -- "+0% DMG"
+		};
+		["Bomb Orange"] = {
+			Price = 75;
+			Boost = 1.2;
+			Currensy = "Coins";
+			Title = 3; -- "+0% DMG"
+		};
+		["Bomb Yellow"] = {
+			Price = 125;
+			Boost = 1.3;
+			Currensy = "Coins";
+			Title = 4; -- "+0% DMG"
+		};
+		["Bomb Green"] = {
+			Price = 300;
+			Boost = 1.4;
+			Currensy = "Coins";
+			Title = 5; -- "+0% DMG"
+		};
+		["Bomb TNT 1"] = {
+			Price = 450;
+			Boost = 1.4;
+			Currensy = "Coins";
+			Title = 5; -- "+0% DMG"
+		};
+		["Bomb TNT 2"] = {
+			Price = 500;
+			Boost = 1.4;
+			Currensy = "Coins";
+			Title = 5; -- "+0% DMG"
+		};
+		["Bomb TNT 3"] = {
+			Price = 750;
+			Boost = 1.4;
+			Currensy = "Coins";
+			Title = 5; -- "+0% DMG"
+		};
+		["Bomb TNT 4"] = {
+			Price = 1750;
+			Boost = 1.4;
+			Currensy = "Coins";
+			Title = 5; -- "+0% DMG"
+		};
+	};
+	
+	Trails = {
+		["None"] = {
+			Price = 0;
+			Currensy = "Power";
+			Speed = 16;
+			Title = "+0% Speed";
+		};
+		["White"] = {
+			Price = 500;
+			Currensy = "Power";
+			Speed = 16.8;
+			Title = "+5% Speed";
+		};
+		["Blue"] = {
+			Price = 2750;
+			Currensy = "Power";
+			Speed = 17.6;
+			Title = "+10% Speed";
+		};
+		["Green"] = {
+			Price = 8000;
+			Currensy = "Power";
+			Speed = 19.4;
+			Title = "+21.5% Speed";
+		};
+		["Red"] = {
+			Price = 17500;
+			Currensy = "Power";
+			Speed = 19;
+			Title = "+18.75% Speed";
+		};
+		["Orange"] = {
+			Price = 42500;
+			Currensy = "Power";
+			Speed = 19;
+			Title = "+18.75% Speed";
+		};
+		["Yellow"] = {
+			Price = 80000;
+			Currensy = "Power";
+			Speed = 20;
+			Title = "+25% Speed";
+		};
+	};
+	
+	UpdateVersion = 1;
+	UpdateData = "21 May 2023";
+	UpdateList = {
+		'New location "Candy Word" 🍬';
+		"New 5 Pets 😺";
+	};
+	
+	StarterPriceRebirths = 3750;
+	AddBoostRebirths = 1;
+	
+}
+return module
