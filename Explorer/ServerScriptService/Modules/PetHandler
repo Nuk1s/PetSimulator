@@ -1,0 +1,102 @@
+-- PetHandler.lua - Улучшенный скрипт движения питомца
+-- Поместите как LocalScript в ServerScriptService
+
+local pet = script.Parent
+local RunService = game:GetService("RunService")
+
+-- Ждем необходимые компоненты
+local primaryPart = pet:WaitForChild("PrimaryPart") or pet.PrimaryPart
+if not primaryPart then
+	-- Ищем главную часть
+	for _, child in pairs(pet:GetChildren()) do
+		if child:IsA("BasePart") and child.Name ~= "HumanoidRootPart" then
+			pet.PrimaryPart = child
+			primaryPart = child
+			break
+		end
+	end
+end
+
+if not primaryPart then
+	warn("❌ PetHandler: Не найдена основная часть для питомца")
+	return
+end
+
+local velocity = primaryPart:WaitForChild("BodyPosition")
+local rotvel = primaryPart:WaitForChild("BodyGyro")
+
+-- Компоненты UI (могут отсутствовать)
+local attachment = primaryPart:FindFirstChild("petAttachment")
+local nameUI, label, shine
+
+if attachment then
+	nameUI = attachment:FindFirstChild("nameUI")
+	if nameUI then
+		label = nameUI:FindFirstChild("TextLabel")
+	end
+	shine = attachment:FindFirstChild("shine")
+end
+
+local updateTimer = 0.1
+local connection
+
+-- Основная логика следования
+pet.AncestryChanged:Connect(function(parent)
+	if connection then
+		connection:Disconnect()
+		connection = nil
+	end
+
+	if parent and parent:FindFirstChild("Humanoid") then
+		local humRootPart = parent:FindFirstChild("HumanoidRootPart")
+
+		if humRootPart then
+			-- Устанавливаем начальную позицию
+			if pet.PrimaryPart then
+				pet:SetPrimaryPartCFrame(humRootPart.CFrame * CFrame.new(
+					math.random(-3, 3), -- Случайное боковое смещение
+					-1.5, 
+					math.random(3, 6) -- Случайное смещение за спину
+					))
+			end
+
+			-- Основной цикл движения через RunService
+			connection = RunService.Heartbeat:Connect(function()
+				if not pet.Parent or not humRootPart.Parent then
+					connection:Disconnect()
+					return
+				end
+
+				-- Вычисляем целевую позицию
+				local targetCFrame = humRootPart.CFrame * CFrame.new(3, -1.7, 4)
+				local targetPos = targetCFrame.Position
+
+				-- Проверяем расстояние
+				local distance = (primaryPart.Position - targetPos).Magnitude
+
+				if distance > 20 then
+					-- Телепортируем если слишком далеко
+					if pet.PrimaryPart then
+						pet:SetPrimaryPartCFrame(targetCFrame)
+					end
+				elseif distance > 2 then
+					-- Плавно движемся к цели
+					velocity.Position = targetPos
+					rotvel.CFrame = humRootPart.CFrame
+				else
+					-- Останавливаемся если близко
+					velocity.Position = primaryPart.Position
+				end
+			end)
+		end
+	end
+end)
+
+-- Очистка при удалении
+pet.AncestryChanged:Connect(function()
+	if not pet.Parent then
+		if connection then
+			connection:Disconnect()
+		end
+	end
+end)

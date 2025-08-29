@@ -1,0 +1,23 @@
+-- PetNames.lua - Модуль имен питомцев
+-- Поместите в ReplicatedStorage.Modules
+
+local petNames = {
+	"Sparkle",
+	"Buddy", 
+	"Shadow",
+	"Golden",
+	"Mystic",
+	"Thunder",
+	"Crystal",
+	"Rainbow",
+	"Diamond",
+	"Magic",
+	"Fluffy",
+	"Shiny",
+	"Glowing",
+	"Cute Pet",
+	"Amazing",
+	"Legendary"
+}
+
+return petNames

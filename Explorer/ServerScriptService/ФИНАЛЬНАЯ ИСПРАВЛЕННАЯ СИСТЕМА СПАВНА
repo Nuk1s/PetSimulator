@@ -1,0 +1,465 @@
+-- ФИНАЛЬНАЯ ИСПРАВЛЕННАЯ СИСТЕМА СПАВНА - Поместите в ServerScriptService
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Workspace = game:GetService("Workspace")
+local TweenService = game:GetService("TweenService")
+
+print("🚀 Starting Final Fixed Spawner System...")
+
+-- ВСТРОЕННАЯ КОНФИГУРАЦИЯ
+local ObjectTypes = {
+	Coin1 = { templateName = "Coin1", MaxHP = 50, Reward = 25, Rarity = 50 },
+	Coin2 = { templateName = "Coin2", MaxHP = 200, Reward = 100, Rarity = 30 },
+	Coin3 = { templateName = "Coin3", MaxHP = 800, Reward = 400, Rarity = 13.5 },
+	Chest1 = { templateName = "Chest1", MaxHP = 1500, Reward = 750, Rarity = 5 },
+	Chest2 = { templateName = "Chest2", MaxHP = 7000, Reward = 3000, Rarity = 1 },
+	Chest3 = { templateName = "Chest3", MaxHP = 15000, Reward = 7500, Rarity = 0.5 }
+}
+
+-- Функция выбора случайного объекта
+local function pickRandomType()
+	local total = 0
+	for _, def in pairs(ObjectTypes) do
+		total = total + def.Rarity
+	end
+
+	local rnd = math.random() * total
+	local sum = 0
+
+	for key, def in pairs(ObjectTypes) do
+		sum = sum + def.Rarity
+		if rnd <= sum then
+			return key, def
+		end
+	end
+
+	return "Coin1", ObjectTypes.Coin1
+end
+
+-- Показать шансы
+local function showSpawnChances()
+	local total = 0
+	for _, def in pairs(ObjectTypes) do
+		total = total + def.Rarity
+	end
+
+	print("=== ШАНСЫ СПАВНА ===")
+	for key, def in pairs(ObjectTypes) do
+		local percent = (def.Rarity / total) * 100
+		print(string.format("%s: %.1f%% (HP:%d, Награда:%d)", key, percent, def.MaxHP, def.Reward))
+	end
+	print("===================")
+end
+
+showSpawnChances()
+
+-- НАСТРОЙКИ
+local MAX_OBJECTS = 15
+local RESPAWN_DELAY = 3
+local MIN_DISTANCE = 8
+local RAYCAST_HEIGHT = 50
+
+-- СОЗДАНИЕ ПАПОК
+local spawnedFolder = Workspace:FindFirstChild("SpawnedObjects")
+if not spawnedFolder then
+	spawnedFolder = Instance.new("Folder")
+	spawnedFolder.Name = "SpawnedObjects"
+	spawnedFolder.Parent = Workspace
+	print("✅ Создана папка SpawnedObjects")
+end
+
+local modelsFolder = ReplicatedStorage:FindFirstChild("Models")
+if not modelsFolder then
+	print("❌ Папка Models не найдена в ReplicatedStorage!")
+	return
+end
+
+print("✅ Используем существующие модели из ReplicatedStorage.Models")
+
+-- СОЗДАНИЕ ЗОН СПАВНА
+local zones = {}
+for i = 1, 3 do
+	local zoneName = "Zone" .. i
+	local zone = Workspace:FindFirstChild(zoneName)
+
+	if not zone then
+		zone = Instance.new("Part")
+		zone.Name = zoneName
+		zone.Size = Vector3.new(50, 1, 50)
+		zone.Position = Vector3.new(i * 60, 0, 0)
+		zone.Material = Enum.Material.Grass
+		zone.BrickColor = BrickColor.new("Bright green")
+		zone.Anchored = true
+		zone.CanCollide = true
+		zone.Parent = Workspace
+		print("✅ Создана зона: " .. zoneName)
+	end
+
+	zones[zoneName] = {
+		part = zone,
+		objects = {}
+	}
+end
+
+-- ФУНКЦИЯ СКРЫТИЯ НЕВИДИМЫХ ЧАСТЕЙ
+local function hideInvisibleParts(model)
+	for _, child in pairs(model:GetDescendants()) do
+		if child:IsA("BasePart") and child.Name == "Part" and child.Transparency >= 0.99 then
+			child.Transparency = 1
+			child.CanCollide = false
+			-- Дополнительно скрываем, уменьшая размер
+			child.Size = Vector3.new(0.01, 0.01, 0.01)
+		end
+	end
+end
+
+-- УЛУЧШЕННЫЕ ФУНКЦИИ СИСТЕМЫ
+local raycastParams = RaycastParams.new()
+raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
+raycastParams.FilterDescendantsInstances = {spawnedFolder}
+
+local function findGroundPosition(position)
+	raycastParams.FilterDescendantsInstances = {spawnedFolder}
+
+	local raycastResult = Workspace:Raycast(
+		Vector3.new(position.X, position.Y + RAYCAST_HEIGHT, position.Z),
+		Vector3.new(0, -RAYCAST_HEIGHT * 2, 0),
+		raycastParams
+	)
+
+	if raycastResult then
+		return Vector3.new(position.X, raycastResult.Position.Y, position.Z)
+	else
+		return Vector3.new(position.X, position.Y, position.Z)
+	end
+end
+
+local function isPositionFree(position, excludeObj)
+	for _, obj in pairs(spawnedFolder:GetChildren()) do
+		if obj ~= excludeObj and obj.PrimaryPart then
+			local distance = (obj.PrimaryPart.Position - position).Magnitude
+			if distance < MIN_DISTANCE then
+				return false
+			end
+		end
+	end
+	return true
+end
+
+local function getSpawnPosition(zonePart)
+	local zoneSize = zonePart.Size
+	local zonePos = zonePart.Position
+
+	for attempt = 1, 30 do
+		local offsetX = (math.random() - 0.5) * (zoneSize.X - 8)
+		local offsetZ = (math.random() - 0.5) * (zoneSize.Z - 8)
+		local testY = zonePos.Y + (zoneSize.Y / 2) + 5
+
+		local testPos = Vector3.new(zonePos.X + offsetX, testY, zonePos.Z + offsetZ)
+		local groundPos = findGroundPosition(testPos)
+
+		if isPositionFree(groundPos) then
+			return groundPos
+		end
+	end
+
+	local centerPos = Vector3.new(zonePos.X, zonePos.Y + (zoneSize.Y / 2) + 5, zonePos.Z)
+	return findGroundPosition(centerPos)
+end
+
+local function createHealthBar(part, hp, maxHP)
+	local gui = Instance.new("BillboardGui")
+	gui.Name = "HealthGUI"
+	gui.Size = UDim2.new(0, 100, 0, 20)
+	gui.StudsOffset = Vector3.new(0, 4, 0)
+	gui.Adornee = part
+	gui.Parent = part
+	gui.Enabled = false
+
+	local bg = Instance.new("Frame")
+	bg.Size = UDim2.new(1, 0, 1, 0)
+	bg.BackgroundColor3 = Color3.new(0, 0, 0)
+	bg.BorderSizePixel = 1
+	bg.Parent = gui
+
+	local bar = Instance.new("Frame")
+	bar.Name = "Bar"
+	bar.Size = UDim2.new(1, -4, 1, -4)
+	bar.Position = UDim2.new(0, 2, 0, 2)
+	bar.BackgroundColor3 = Color3.new(0, 1, 0)
+	bar.BorderSizePixel = 0
+	bar.Parent = bg
+
+	local text = Instance.new("TextLabel")
+	text.Size = UDim2.new(1, 0, 1, 0)
+	text.BackgroundTransparency = 1
+	text.Font = Enum.Font.GothamBold
+	text.TextColor3 = Color3.new(1, 1, 1)
+	text.TextScaled = true
+	text.Text = hp .. "/" .. maxHP
+	text.TextStrokeTransparency = 0
+	text.TextStrokeColor3 = Color3.new(0, 0, 0)
+	text.Parent = gui
+
+	return gui, text, bar
+end
+
+-- ФУНКЦИЯ ПРАВИЛЬНОЙ ОРИЕНТАЦИИ - ИСПРАВЛЕНА!
+local function getCorrectOrientation(typeKey, position)
+	local randomY = math.rad(math.random(0, 360))
+
+	if string.find(typeKey, "Coin") then
+		-- Монеты должны ЛЕЖАТЬ ГОРИЗОНТАЛЬНО (плашмя на земле)
+		-- Поворачиваем на 0 градусов по X и Z, только случайный поворот по Y
+		return CFrame.new(position) * CFrame.Angles(0, randomY, 0)
+	else
+		-- Сундуки стоят нормально
+		return CFrame.new(position) * CFrame.Angles(0, randomY, 0)
+	end
+end
+
+local function spawnObject(zoneName)
+	local zone = zones[zoneName]
+	if not zone then return end
+
+	-- Считаем существующие объекты и очищаем удаленные
+	local count = 0
+	for obj, _ in pairs(zone.objects) do
+		if obj and obj.Parent then
+			count = count + 1
+		else
+			zone.objects[obj] = nil
+		end
+	end
+
+	if count >= MAX_OBJECTS then return end
+
+	-- Выбираем тип
+	local typeKey, typeDef = pickRandomType()
+	local template = modelsFolder:FindFirstChild(typeDef.templateName)
+
+	if not template then
+		warn("❌ Шаблон не найден: " .. typeDef.templateName)
+		return
+	end
+
+	-- Создаем объект
+	local newObj = template:Clone()
+	newObj.Parent = spawnedFolder
+
+	-- Скрываем невидимые части
+	hideInvisibleParts(newObj)
+
+	-- ИСПРАВЛЕННОЕ ПОЗИЦИОНИРОВАНИЕ
+	if newObj.PrimaryPart then
+		local spawnPos = getSpawnPosition(zone.part)
+
+		-- Для монет - кладем их плашмя на зону (минимальный отступ по Y)
+		if string.find(typeKey, "Coin") then
+			-- Получаем минимальную координату объекта для точного размещения на поверхности
+			local objSize = newObj.PrimaryPart.Size
+			local heightOffset = objSize.Y / 2  -- Половина высоты монеты
+			local finalPos = Vector3.new(spawnPos.X, spawnPos.Y + heightOffset, spawnPos.Z)
+
+			-- ПРАВИЛЬНАЯ ОРИЕНТАЦИЯ - монеты лежат горизонтально
+			local correctCFrame = getCorrectOrientation(typeKey, finalPos)
+			newObj:SetPrimaryPartCFrame(correctCFrame)
+		else
+			-- Для сундуков - обычное размещение
+			local objSize = newObj.PrimaryPart.Size
+			local heightOffset = objSize.Y / 2
+			local finalPos = Vector3.new(spawnPos.X, spawnPos.Y + heightOffset, spawnPos.Z)
+
+			local correctCFrame = getCorrectOrientation(typeKey, finalPos)
+			newObj:SetPrimaryPartCFrame(correctCFrame)
+		end
+	end
+
+	-- Настраиваем параметры
+	newObj:SetAttribute("CurrentHP", typeDef.MaxHP)
+	newObj:SetAttribute("MaxHP", typeDef.MaxHP)
+	newObj:SetAttribute("Reward", typeDef.Reward)
+	newObj.Name = typeKey .. "_Spawned"
+
+	-- Создаем HP бар
+	local gui, text, bar = createHealthBar(newObj.PrimaryPart, typeDef.MaxHP, typeDef.MaxHP)
+
+	-- Анимация появления
+	if newObj.PrimaryPart then
+		newObj.PrimaryPart.Transparency = 1
+		local originalSize = newObj.PrimaryPart.Size
+		newObj.PrimaryPart.Size = Vector3.new(0.1, 0.1, 0.1)
+
+		local spawnTween = TweenService:Create(
+			newObj.PrimaryPart, 
+			TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), 
+			{
+				Transparency = 0,
+				Size = originalSize
+			}
+		)
+		spawnTween:Play()
+	end
+
+	-- Сохраняем в зоне
+	zone.objects[newObj] = {
+		hp = typeDef.MaxHP,
+		maxHP = typeDef.MaxHP,
+		reward = typeDef.Reward,
+		gui = gui,
+		text = text,
+		bar = bar
+	}
+
+	print(string.format("✅ Spawned %s in %s (pos: %s)", typeKey, zoneName, tostring(spawnPos)))
+end
+
+-- СИСТЕМА УРОНА
+local function takeDamage(obj, damage)
+	if not obj or not obj.Parent then return false, 0 end
+
+	local objData = nil
+	local zone = nil
+
+	for zoneName, zoneData in pairs(zones) do
+		if zoneData.objects[obj] then
+			objData = zoneData.objects[obj]
+			zone = zoneData
+			break
+		end
+	end
+
+	if not objData then return false, 0 end
+
+	objData.hp = math.max(0, objData.hp - damage)
+	obj:SetAttribute("CurrentHP", objData.hp)
+
+	if objData.gui then objData.gui.Enabled = true end
+	if objData.text then objData.text.Text = objData.hp .. "/" .. objData.maxHP end
+	if objData.bar then
+		local percent = objData.hp / objData.maxHP
+		objData.bar.Size = UDim2.new(percent, -4, 1, -4)
+		if percent > 0.6 then objData.bar.BackgroundColor3 = Color3.new(0, 1, 0)
+		elseif percent > 0.3 then objData.bar.BackgroundColor3 = Color3.new(1, 1, 0)
+		else objData.bar.BackgroundColor3 = Color3.new(1, 0, 0) end
+	end
+
+	if objData.hp <= 0 then
+		local reward = objData.reward
+		zone.objects[obj] = nil
+
+		if obj.PrimaryPart then
+			local tween = TweenService:Create(
+				obj.PrimaryPart, 
+				TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.In), 
+				{
+					Transparency = 1, 
+					Size = Vector3.new(0.1, 0.1, 0.1)
+				}
+			)
+			tween:Play()
+			tween.Completed:Connect(function() 
+				obj:Destroy() 
+			end)
+		else
+			obj:Destroy()
+		end
+
+		print("💀 Object destroyed, reward: " .. reward)
+		return true, reward
+	end
+
+	if objData.hp >= objData.maxHP then
+		task.spawn(function()
+			task.wait(3)
+			if objData.gui and objData.gui.Parent then 
+				objData.gui.Enabled = false 
+			end
+		end)
+	end
+
+	return false, 0
+end
+
+-- ЗАПУСК СИСТЕМЫ
+print("🎯 Starting spawn loops...")
+
+for zoneName, zone in pairs(zones) do
+	task.spawn(function()
+		-- Первичное заполнение
+		for i = 1, MAX_OBJECTS do
+			spawnObject(zoneName)
+			task.wait(0.3)
+		end
+
+		-- Цикл респавна
+		while true do
+			task.wait(RESPAWN_DELAY)
+			spawnObject(zoneName)
+		end
+	end)
+end
+
+-- API ДЛЯ ДРУГИХ СКРИПТОВ
+_G.SpawnerAPI = {
+	TakeDamage = takeDamage,
+	zones = zones,
+	spawnObject = spawnObject,
+	ObjectTypes = ObjectTypes
+}
+
+-- ИСПРАВЛЕН ПОДСЧЕТ ЗОН (убрал table.getn)
+local zoneCount = 0
+for _ in pairs(zones) do
+	zoneCount = zoneCount + 1
+end
+
+print("🚀 Final Fixed Spawner System is READY!")
+print("📝 Используйте: _G.SpawnerAPI.TakeDamage(object, damage) для нанесения урона")
+print("📊 Zones created: " .. zoneCount)
+
+-- ТЕСТОВЫЕ КОМАНДЫ
+game.Players.PlayerAdded:Connect(function(player)
+	player.Chatted:Connect(function(msg)
+		if player.Name == "egor6342" then -- ЗАМЕНИТЕ НА СВОЕ ИМЯ!
+			if msg:lower() == "/test" then
+				print("🧪 Running spawn test...")
+				for zoneName, _ in pairs(zones) do
+					spawnObject(zoneName)
+				end
+			elseif msg:lower() == "/clear" then
+				print("🧹 Clearing all objects...")
+				for _, obj in pairs(spawnedFolder:GetChildren()) do
+					obj:Destroy()
+				end
+				for _, zone in pairs(zones) do
+					zone.objects = {}
+				end
+			elseif msg:lower() == "/stats" then
+				showSpawnChances()
+				for zoneName, zone in pairs(zones) do
+					local count = 0
+					for obj, _ in pairs(zone.objects) do
+						if obj and obj.Parent then count = count + 1 end
+					end
+					print(zoneName .. ": " .. count .. " objects")
+				end
+			elseif msg:lower() == "/fix" then
+				print("🔧 Fixing existing objects...")
+				for _, obj in pairs(spawnedFolder:GetChildren()) do
+					if obj:IsA("Model") and obj.PrimaryPart then
+						hideInvisibleParts(obj)
+
+						-- Исправляем ориентацию монет - КЛАДЕМ ИХ ГОРИЗОНТАЛЬНО!
+						if string.find(obj.Name, "Coin") then
+							local pos = obj.PrimaryPart.Position
+							-- Убираем любые повороты, оставляем только поворот по Y
+							local randomY = math.rad(math.random(0, 360))
+							local newCFrame = CFrame.new(pos) * CFrame.Angles(0, randomY, 0)
+							obj:SetPrimaryPartCFrame(newCFrame)
+						end
+					end
+				end
+			end
+		end
+	end)
+end)

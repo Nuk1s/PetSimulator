@@ -1,0 +1,129 @@
+-- EggModule (Исправленная версия без синтаксических ошибок)
+local EggModule = {}
+
+-- Настройки яиц и их стоимость
+EggModule.EggTypes = {
+	Basic = {
+		Cost = 50,
+		Name = "Базовое яйцо",
+		Pets = {
+			{id = "Dog", rarity = 70},
+			{id = "Cat", rarity = 25},
+			{id = "Rabbit", rarity = 5}
+		}
+	},
+
+	Common = {
+		Cost = 500,
+		Name = "Обычное яйцо",
+		Pets = {
+			{id = "Wolf", rarity = 50},
+			{id = "Fox", rarity = 30},
+			{id = "Bear", rarity = 15},
+			{id = "Tiger", rarity = 5}
+		}
+	},
+
+	Rare = {
+		Cost = 2500,
+		Name = "Редкое яйцо",
+		Pets = {
+			{id = "Dragon", rarity = 40},
+			{id = "Phoenix", rarity = 30},
+			{id = "Unicorn", rarity = 20},
+			{id = "Griffin", rarity = 10}
+		}
+	}
+}
+
+-- Функция для получения случайного питомца из яйца
+function EggModule.OpenEgg(eggType)
+	local egg = EggModule.EggTypes[eggType]
+	if not egg then
+		warn("Неизвестный тип яйца: " .. tostring(eggType))
+		return nil
+	end
+
+	-- Вычисляем общую редкость
+	local totalRarity = 0
+	for _, pet in ipairs(egg.Pets) do
+		totalRarity = totalRarity + pet.rarity
+	end
+
+	-- Выбираем случайного питомца
+	local randomValue = math.random() * totalRarity
+	local currentSum = 0
+
+	for _, pet in ipairs(egg.Pets) do
+		currentSum = currentSum + pet.rarity
+		if randomValue <= currentSum then
+			print("Из " .. egg.Name .. " вылупился: " .. pet.id)
+			return pet.id
+		end
+	end
+
+	-- Fallback на первого питомца
+	return egg.Pets[1].id
+end
+
+-- Функция для получения информации о яйце
+function EggModule.GetEggInfo(eggType)
+	local egg = EggModule.EggTypes[eggType]
+	if not egg then return nil end
+
+	return {
+		Cost = egg.Cost,
+		Name = egg.Name,
+		PetCount = #egg.Pets
+	}
+end
+
+-- Функция для получения шансов питомцев в яйце
+function EggModule.GetEggChances(eggType)
+	local egg = EggModule.EggTypes[eggType]
+	if not egg then return nil end
+
+	local totalRarity = 0
+	for _, pet in ipairs(egg.Pets) do
+		totalRarity = totalRarity + pet.rarity
+	end
+
+	local chances = {}
+	for _, pet in ipairs(egg.Pets) do
+		local percentage = (pet.rarity / totalRarity) * 100
+		table.insert(chances, {
+			name = pet.id,
+			chance = math.floor(percentage * 10) / 10 -- Округляем до 1 знака
+		})
+	end
+
+	return chances
+end
+
+-- Функция для добавления нового питомца в яйцо
+function EggModule.AddPetToEgg(eggType, petId, rarity)
+	local egg = EggModule.EggTypes[eggType]
+	if not egg then
+		warn("Яйцо не найдено: " .. tostring(eggType))
+		return false
+	end
+
+	table.insert(egg.Pets, {id = petId, rarity = rarity})
+	print("Питомец " .. petId .. " добавлен в " .. egg.Name)
+	return true
+end
+
+-- Функция для изменения стоимости яйца
+function EggModule.SetEggCost(eggType, newCost)
+	local egg = EggModule.EggTypes[eggType]
+	if not egg then
+		warn("Яйцо не найдено: " .. tostring(eggType))
+		return false
+	end
+
+	egg.Cost = newCost
+	print("Стоимость " .. egg.Name .. " изменена на " .. newCost)
+	return true
+end
+
+return EggModule

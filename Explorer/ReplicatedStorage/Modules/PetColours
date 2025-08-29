@@ -1,0 +1,23 @@
+-- PetColours.lua - Модуль цветов питомцев
+-- Поместите в ReplicatedStorage.Modules
+
+local petColours = {
+	BrickColor.new("Deep blue"),
+	BrickColor.new("Persimmon"), 
+	BrickColor.new("Pink"),
+	BrickColor.new("Lime green"),
+	BrickColor.new("Burlap"),
+	BrickColor.new("Dark orange"),
+	BrickColor.new("Bright red"),
+	BrickColor.new("Bright yellow"),
+	BrickColor.new("Bright violet"),
+	BrickColor.new("Bright green"),
+	BrickColor.new("Cyan"),
+	BrickColor.new("Magenta"),
+	BrickColor.new("Gold"),
+	BrickColor.new("Silver metallic"),
+	BrickColor.new("Really black"),
+	BrickColor.new("Institutional white")
+}
+
+return petColours

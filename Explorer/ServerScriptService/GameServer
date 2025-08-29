@@ -1,0 +1,87 @@
+-- SpawnerServer.lua
+-- Управляет спавном предметов в зонах
+
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ServerStorage = game:GetService("ServerStorage")
+local SpawnerModule = require(script.Parent:WaitForChild("SpawnerModule"))
+
+-- ⚙️ Конфигурация зон
+local SpawnerConfig = {
+	["Zone1"] = {
+		Objects = {"Coin1", "Coin2", "Chest1"},
+		MaxObjects = 20,
+		SpawnInterval = 3,
+	},
+	["Zone2"] = {
+		Objects = {"Coin1", "Coin2", "Coin3", "Chest1", "Chest2"},
+		MaxObjects = 30,
+		SpawnInterval = 2,
+	},
+	["Zone3"] = {
+		Objects = {"Coin2", "Coin3", "Chest2", "Chest3"},
+		MaxObjects = 40,
+		SpawnInterval = 2,
+	},
+}
+
+-- Папка, куда спавнятся объекты
+local spawnFolder = workspace:FindFirstChild("SpawnedObjects")
+if not spawnFolder then
+	spawnFolder = Instance.new("Folder")
+	spawnFolder.Name = "SpawnedObjects"
+	spawnFolder.Parent = workspace
+end
+
+-- Функция спавна
+local function spawnObject(zoneName, zoneConfig, zonePart)
+	local existingObjects = spawnFolder:GetChildren()
+	if #existingObjects >= zoneConfig.MaxObjects then
+		return
+	end
+
+	-- Выбор предмета по редкости
+	local templateName = SpawnerModule.GetRandomItem(zoneConfig.Objects)
+	local template = ReplicatedStorage:FindFirstChild("Objects"):FindFirstChild(templateName)
+
+	if not template then
+		warn("Template " .. templateName .. " не найден в ReplicatedStorage.Objects")
+		return
+	end
+
+	local coin = template:Clone()
+
+	-- Размер зоны
+	local zoneSize = zonePart.Size
+	local offsetX = (math.random() - 0.5) * zoneSize.X
+	local offsetZ = (math.random() - 0.5) * zoneSize.Z
+
+	-- Позиция по Y (поверх зоны)
+	local surfaceY = zonePart.Position.Y + (zoneSize.Y / 2) + (coin.Size.Y / 2)
+
+	-- Итоговая позиция
+	local spawnPos = Vector3.new(
+		zonePart.Position.X + offsetX,
+		surfaceY,
+		zonePart.Position.Z + offsetZ
+	)
+
+	-- Ставим РОВНО (без поворота)
+	coin.CFrame = CFrame.new(spawnPos)
+
+	coin.Parent = spawnFolder
+end
+
+-- Запуск спавна для всех зон
+for zoneName, zoneConfig in pairs(SpawnerConfig) do
+	local zonePart = workspace:FindFirstChild(zoneName)
+	if zonePart and zonePart:IsA("BasePart") then
+		task.spawn(function()
+			while true do
+				spawnObject(zoneName, zoneConfig, zonePart)
+				task.wait(zoneConfig.SpawnInterval)
+			end
+		end)
+	else
+		warn("Зона " .. zoneName .. " не найдена в workspace")
+	end
+end

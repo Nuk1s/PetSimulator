@@ -1,0 +1,829 @@
+-- UltimatePetGUI.lua - ЕДИНСТВЕННЫЙ GUI без конфликтов
+-- Поместите ТОЛЬКО ЭТОТ СКРИПТ в StarterPlayerScripts
+
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+print("🎮 ULTIMATE Pet GUI - Единственная система")
+
+-- Remote Events
+local remoteEvents = ReplicatedStorage:WaitForChild("RemoteEvents", 15)
+if not remoteEvents then return end
+
+local RE_EquipPet, RE_UnequipPet, RE_UpdatePets, RE_UpdateCoins, RE_DeletePet, RE_EquipBest, RE_UnequipAll, RE_SmartAttack, RE_RecallAllPets
+
+task.spawn(function()
+	RE_EquipPet = remoteEvents:WaitForChild("RE_EquipPet", 10)
+	RE_UnequipPet = remoteEvents:WaitForChild("RE_RequestUnequipPet", 10) or remoteEvents:WaitForChild("RE_UnequipPet", 10)
+	RE_UpdatePets = remoteEvents:WaitForChild("RE_UpdatePets", 10)
+	RE_UpdateCoins = remoteEvents:WaitForChild("RE_UpdateCoins", 10)
+	RE_DeletePet = remoteEvents:WaitForChild("RE_DeletePet", 10)
+	RE_EquipBest = remoteEvents:WaitForChild("RE_EquipBest", 10)
+	RE_UnequipAll = remoteEvents:WaitForChild("RE_UnequipAll", 10)
+	RE_SmartAttack = remoteEvents:WaitForChild("RE_SmartAttack", 10)
+	RE_RecallAllPets = remoteEvents:WaitForChild("RE_RecallAllPets", 10)
+end)
+
+-- Данные
+local playerPets = {}
+local playerCoins = 0
+local selectedPetsForDeletion = {}
+local deletionMode = false
+local equippedPetsCount = 0
+
+-- Правильные иконки питомцев
+local PET_ICONS = {
+	["Bunny"] = "🐰",
+	["Doggy"] = "🐶", 
+	["Kitty"] = "🐱",
+	["Rabbit"] = "🐰",
+	["Peggy"] = "🐷",
+	["Golden Bunny"] = "✨🐰✨",
+	["Golden Doggy"] = "✨🐶✨", 
+	["Golden Kitty"] = "✨🐱✨",
+	["Golden Rabbit"] = "✨🐰✨",
+}
+
+-- Рарности
+local PET_RARITIES = {
+	Common = {color = Color3.new(0.8, 0.8, 0.8), name = "Common"},
+	Uncommon = {color = Color3.new(0.3, 0.8, 0.3), name = "Uncommon"}, 
+	Rare = {color = Color3.new(0.3, 0.3, 1), name = "Rare"},
+	Epic = {color = Color3.new(0.7, 0.3, 1), name = "Epic"},
+	Legendary = {color = Color3.new(1, 0.8, 0.1), name = "Legendary"}, 
+	Secret = {color = Color3.new(1, 0.5, 0.8), name = "Secret"},
+	Mythic = {color = Color3.new(1, 0.2, 0.2), name = "Mythic"}
+}
+
+-- ЕДИНСТВЕННЫЙ ScreenGui (удаляем все старые)
+for _, gui in pairs(playerGui:GetChildren()) do
+	if gui.Name:find("Pet") or gui.Name:find("Coins") then
+		gui:Destroy()
+	end
+end
+
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "UltimatePetGUI"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = playerGui
+
+-- Счетчик монет
+local coinsFrame = Instance.new("Frame")
+coinsFrame.Size = UDim2.new(0, 280, 0, 80)
+coinsFrame.Position = UDim2.new(0, 25, 0.5, -40)
+coinsFrame.BackgroundColor3 = Color3.new(0.06, 0.06, 0.1)
+coinsFrame.BorderSizePixel = 0
+coinsFrame.Parent = screenGui
+
+local coinsCorner = Instance.new("UICorner")
+coinsCorner.CornerRadius = UDim.new(0, 20)
+coinsCorner.Parent = coinsFrame
+
+local coinsStroke = Instance.new("UIStroke")
+coinsStroke.Color = Color3.new(1, 0.85, 0.1)
+coinsStroke.Thickness = 3
+coinsStroke.Parent = coinsFrame
+
+local coinIcon = Instance.new("TextLabel")
+coinIcon.Size = UDim2.new(0, 60, 1, 0)
+coinIcon.BackgroundTransparency = 1
+coinIcon.Text = "💰"
+coinIcon.TextColor3 = Color3.new(1, 0.85, 0.1)
+coinIcon.Font = Enum.Font.GothamBold
+coinIcon.TextSize = 38
+coinIcon.Parent = coinsFrame
+
+local coinsLabel = Instance.new("TextLabel")
+coinsLabel.Size = UDim2.new(1, -70, 1, 0)
+coinsLabel.Position = UDim2.new(0, 70, 0, 0)
+coinsLabel.BackgroundTransparency = 1
+coinsLabel.Text = "0"
+coinsLabel.TextColor3 = Color3.new(1, 1, 1)
+coinsLabel.Font = Enum.Font.GothamBold
+coinsLabel.TextSize = 26
+coinsLabel.TextStrokeTransparency = 0
+coinsLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
+coinsLabel.TextXAlignment = Enum.TextXAlignment.Left
+coinsLabel.Parent = coinsFrame
+
+-- Кнопка инвентаря
+local inventoryButton = Instance.new("TextButton")
+inventoryButton.Size = UDim2.new(0, 120, 0, 120)
+inventoryButton.Position = UDim2.new(0.5, -60, 1, -140)
+inventoryButton.BackgroundColor3 = Color3.new(0.12, 0.12, 0.2)
+inventoryButton.BorderSizePixel = 0
+inventoryButton.Text = ""
+inventoryButton.Parent = screenGui
+
+local btnCorner = Instance.new("UICorner")
+btnCorner.CornerRadius = UDim.new(0, 25)
+btnCorner.Parent = inventoryButton
+
+local btnStroke = Instance.new("UIStroke")
+btnStroke.Color = Color3.new(0.3, 0.5, 1)
+btnStroke.Thickness = 4
+btnStroke.Parent = inventoryButton
+
+local btnIcon = Instance.new("TextLabel")
+btnIcon.Size = UDim2.new(1, 0, 0.6, 0)
+btnIcon.BackgroundTransparency = 1
+btnIcon.Text = "🐾"
+btnIcon.TextColor3 = Color3.new(1, 1, 1)
+btnIcon.Font = Enum.Font.GothamBold
+btnIcon.TextSize = 42
+btnIcon.Parent = inventoryButton
+
+local btnText = Instance.new("TextLabel")
+btnText.Size = UDim2.new(1, 0, 0.4, 0)
+btnText.Position = UDim2.new(0, 0, 0.6, 0)
+btnText.BackgroundTransparency = 1
+btnText.Text = "PETS"
+btnText.TextColor3 = Color3.new(0.8, 0.9, 1)
+btnText.Font = Enum.Font.GothamBold
+btnText.TextSize = 16
+btnText.Parent = inventoryButton
+
+-- Главное меню инвентаря КАК НА ВАШЕМ РИСУНКЕ
+local mainPetFrame = Instance.new("Frame")
+mainPetFrame.Size = UDim2.new(0, 800, 0, 500) -- Больше размер
+mainPetFrame.Position = UDim2.new(0.5, -400, 0.5, -250)
+mainPetFrame.BackgroundColor3 = Color3.new(0.08, 0.08, 0.12)
+mainPetFrame.BorderSizePixel = 0
+mainPetFrame.Visible = false
+mainPetFrame.Parent = screenGui
+
+local mainCorner = Instance.new("UICorner")
+mainCorner.CornerRadius = UDim.new(0, 20)
+mainCorner.Parent = mainPetFrame
+
+local mainStroke = Instance.new("UIStroke")
+mainStroke.Color = Color3.new(0.3, 0.4, 0.6)
+mainStroke.Thickness = 3
+mainStroke.Parent = mainPetFrame
+
+-- Заголовок
+local titleFrame = Instance.new("Frame")
+titleFrame.Size = UDim2.new(1, 0, 0, 60)
+titleFrame.BackgroundColor3 = Color3.new(0.12, 0.12, 0.18)
+titleFrame.BorderSizePixel = 0
+titleFrame.Parent = mainPetFrame
+
+local titleCorner = Instance.new("UICorner")
+titleCorner.CornerRadius = UDim.new(0, 15)
+titleCorner.Parent = titleFrame
+
+local titleLabel = Instance.new("TextLabel")
+titleLabel.Size = UDim2.new(1, 0, 1, 0)
+titleLabel.BackgroundTransparency = 1
+titleLabel.Text = "🐾 PET INVENTORY 🐾"
+titleLabel.TextColor3 = Color3.new(1, 1, 1)
+titleLabel.Font = Enum.Font.GothamBold
+titleLabel.TextSize = 24
+titleLabel.Parent = titleFrame
+
+-- ЛЕВАЯ ПАНЕЛЬ с одним большим питомцем (как на рисунке)
+local leftPanel = Instance.new("Frame")
+leftPanel.Size = UDim2.new(0, 300, 1, -80)
+leftPanel.Position = UDim2.new(0, 20, 0, 70)
+leftPanel.BackgroundColor3 = Color3.new(0.1, 0.1, 0.15)
+leftPanel.BorderSizePixel = 0
+leftPanel.Parent = mainPetFrame
+
+local leftCorner = Instance.new("UICorner")
+leftCorner.CornerRadius = UDim.new(0, 15)
+leftCorner.Parent = leftPanel
+
+-- Большая иконка выбранного питомца (как на рисунке)
+local bigPetFrame = Instance.new("Frame")
+bigPetFrame.Size = UDim2.new(1, -20, 0, 200)
+bigPetFrame.Position = UDim2.new(0, 10, 0, 20)
+bigPetFrame.BackgroundColor3 = Color3.new(0.15, 0.15, 0.2)
+bigPetFrame.BorderSizePixel = 0
+bigPetFrame.Parent = leftPanel
+
+local bigPetCorner = Instance.new("UICorner")
+bigPetCorner.CornerRadius = UDim.new(0, 15)
+bigPetCorner.Parent = bigPetFrame
+
+local bigPetStroke = Instance.new("UIStroke")
+bigPetStroke.Thickness = 4
+bigPetStroke.Color = Color3.new(0.3, 0.8, 0.3)
+bigPetStroke.Parent = bigPetFrame
+
+local bigPetIcon = Instance.new("TextLabel")
+bigPetIcon.Size = UDim2.new(1, 0, 0.7, 0)
+bigPetIcon.BackgroundTransparency = 1
+bigPetIcon.Text = "🐾"
+bigPetIcon.TextColor3 = Color3.new(1, 1, 1)
+bigPetIcon.Font = Enum.Font.GothamBold
+bigPetIcon.TextSize = 80
+bigPetIcon.Parent = bigPetFrame
+
+-- Stats панель
+local statsPanel = Instance.new("Frame")
+statsPanel.Size = UDim2.new(1, -20, 0, 150)
+statsPanel.Position = UDim2.new(0, 10, 0, 240)
+statsPanel.BackgroundColor3 = Color3.new(0.12, 0.12, 0.18)
+statsPanel.BorderSizePixel = 0
+statsPanel.Parent = leftPanel
+
+local statsCorner = Instance.new("UICorner")
+statsCorner.CornerRadius = UDim.new(0, 12)
+statsCorner.Parent = statsPanel
+
+-- Кнопка EQUIP большая (как на рисунке)
+local bigEquipButton = Instance.new("TextButton")
+bigEquipButton.Size = UDim2.new(1, -20, 0, 40)
+bigEquipButton.Position = UDim2.new(0, 10, 1, -50)
+bigEquipButton.BackgroundColor3 = Color3.new(0.2, 0.6, 0.8)
+bigEquipButton.Text = "EQUIP"
+bigEquipButton.TextColor3 = Color3.new(1, 1, 1)
+bigEquipButton.Font = Enum.Font.GothamBold
+bigEquipButton.TextSize = 18
+bigEquipButton.BorderSizePixel = 0
+bigEquipButton.Parent = leftPanel
+
+local bigEquipCorner = Instance.new("UICorner")
+bigEquipCorner.CornerRadius = UDim.new(0, 10)
+bigEquipCorner.Parent = bigEquipButton
+
+-- ПРАВАЯ ПАНЕЛЬ со списком питомцев (как на рисунке)
+local rightPanel = Instance.new("Frame")
+rightPanel.Size = UDim2.new(1, -340, 1, -80)
+rightPanel.Position = UDim2.new(0, 330, 0, 70)
+rightPanel.BackgroundTransparency = 1
+rightPanel.Parent = mainPetFrame
+
+-- Скролл для маленьких иконок питомцев
+local petsScroll = Instance.new("ScrollingFrame")
+petsScroll.Size = UDim2.new(1, -20, 1, -80)
+petsScroll.Position = UDim2.new(0, 10, 0, 10)
+petsScroll.BackgroundColor3 = Color3.new(0.05, 0.05, 0.08)
+petsScroll.BorderSizePixel = 0
+petsScroll.ScrollBarThickness = 15
+petsScroll.Parent = rightPanel
+
+local scrollCorner = Instance.new("UICorner")
+scrollCorner.CornerRadius = UDim.new(0, 12)
+scrollCorner.Parent = petsScroll
+
+-- Сетка для маленьких иконок (как на рисунке)
+local petGridLayout = Instance.new("UIGridLayout")
+petGridLayout.CellSize = UDim2.new(0, 80, 0, 80)
+petGridLayout.CellPadding = UDim2.new(0, 10, 0, 10)
+petGridLayout.Parent = petsScroll
+
+local gridPadding = Instance.new("UIPadding")
+gridPadding.PaddingTop = UDim.new(0, 10)
+gridPadding.PaddingBottom = UDim.new(0, 10)
+gridPadding.PaddingLeft = UDim.new(0, 10)
+gridPadding.PaddingRight = UDim.new(0, 10)
+gridPadding.Parent = petsScroll
+
+-- Нижняя панель
+local bottomPanel = Instance.new("Frame")
+bottomPanel.Size = UDim2.new(1, -40, 0, 60)
+bottomPanel.Position = UDim2.new(0, 20, 1, -70)
+bottomPanel.BackgroundColor3 = Color3.new(0.1, 0.1, 0.15)
+bottomPanel.BorderSizePixel = 0
+bottomPanel.Parent = mainPetFrame
+
+local bottomCorner = Instance.new("UICorner")
+bottomCorner.CornerRadius = UDim.new(0, 12)
+bottomCorner.Parent = bottomPanel
+
+-- Кнопка удаления
+local deleteButton = Instance.new("TextButton")
+deleteButton.Size = UDim2.new(0, 80, 0, 50)
+deleteButton.Position = UDim2.new(0, 10, 0, 5)
+deleteButton.BackgroundColor3 = Color3.new(0.8, 0.2, 0.2)
+deleteButton.BorderSizePixel = 0
+deleteButton.Text = ""
+deleteButton.Parent = bottomPanel
+
+local deleteCorner = Instance.new("UICorner")
+deleteCorner.CornerRadius = UDim.new(0, 10)
+deleteCorner.Parent = deleteButton
+
+local deleteIcon = Instance.new("TextLabel")
+deleteIcon.Size = UDim2.new(1, 0, 1, 0)
+deleteIcon.BackgroundTransparency = 1
+deleteIcon.Text = "🗑️"
+deleteIcon.TextColor3 = Color3.new(1, 1, 1)
+deleteIcon.Font = Enum.Font.GothamBold
+deleteIcon.TextSize = 24
+deleteIcon.Parent = deleteButton
+
+-- Кнопка лучших питомцев (ИСПРАВЛЕНО)
+local equipBestButton = Instance.new("TextButton")
+equipBestButton.Size = UDim2.new(0, 80, 0, 50)
+equipBestButton.Position = UDim2.new(1, -90, 0, 5)
+equipBestButton.BackgroundColor3 = Color3.new(0.2, 0.8, 0.2)
+equipBestButton.BorderSizePixel = 0
+equipBestButton.Text = ""
+equipBestButton.Parent = bottomPanel
+
+local equipBestCorner = Instance.new("UICorner")
+equipBestCorner.CornerRadius = UDim.new(0, 10)
+equipBestCorner.Parent = equipBestButton
+
+local equipBestIcon = Instance.new("TextLabel")
+equipBestIcon.Size = UDim2.new(1, 0, 1, 0)
+equipBestIcon.BackgroundTransparency = 1
+equipBestIcon.Text = "⭐"
+equipBestIcon.TextColor3 = Color3.new(1, 1, 1)
+equipBestIcon.Font = Enum.Font.GothamBold
+equipBestIcon.TextSize = 28
+equipBestIcon.Parent = equipBestButton
+
+-- Статус питомцев
+local statusLabel = Instance.new("TextLabel")
+statusLabel.Size = UDim2.new(1, -200, 1, 0)
+statusLabel.Position = UDim2.new(0, 100, 0, 0)
+statusLabel.BackgroundTransparency = 1
+statusLabel.Text = "0/3 pets equipped (Buy GamePass for 6)"
+statusLabel.TextColor3 = Color3.new(0.8, 0.8, 0.9)
+statusLabel.Font = Enum.Font.GothamMedium
+statusLabel.TextSize = 14
+statusLabel.Parent = bottomPanel
+
+-- Кнопка закрытия
+local closeButton = Instance.new("TextButton")
+closeButton.Size = UDim2.new(0, 40, 0, 40)
+closeButton.Position = UDim2.new(1, -50, 0, 10)
+closeButton.BackgroundColor3 = Color3.new(0.9, 0.2, 0.2)
+closeButton.Text = "✖"
+closeButton.TextColor3 = Color3.new(1, 1, 1)
+closeButton.Font = Enum.Font.GothamBold
+closeButton.TextSize = 20
+closeButton.BorderSizePixel = 0
+closeButton.Parent = mainPetFrame
+
+local closeCorner = Instance.new("UICorner")
+closeCorner.CornerRadius = UDim.new(0, 15)
+closeCorner.Parent = closeButton
+
+-- Переменные
+local selectedPetInfo = nil
+
+-- Функция создания маленькой иконки питомца
+local function createSmallPetIcon(petInfo)
+	local petIcon = Instance.new("TextButton")
+	petIcon.Size = UDim2.new(1, 0, 1, 0)
+	petIcon.BackgroundColor3 = Color3.new(0.15, 0.15, 0.2)
+	petIcon.BorderSizePixel = 0
+	petIcon.Text = ""
+
+	local iconCorner = Instance.new("UICorner")
+	iconCorner.CornerRadius = UDim.new(0, 8)
+	iconCorner.Parent = petIcon
+
+	-- Обводка по рарности
+	local rarityInfo = PET_RARITIES[petInfo.rarity] or PET_RARITIES.Common
+	local iconStroke = Instance.new("UIStroke")
+	iconStroke.Thickness = 3
+	iconStroke.Color = rarityInfo.color
+	iconStroke.Parent = petIcon
+
+	-- Иконка питомца
+	local icon = PET_ICONS[petInfo.name] or "🐾"
+	local iconLabel = Instance.new("TextLabel")
+	iconLabel.Size = UDim2.new(1, 0, 1, 0)
+	iconLabel.BackgroundTransparency = 1
+	iconLabel.Text = icon
+	iconLabel.TextColor3 = Color3.new(1, 1, 1)
+	iconLabel.Font = Enum.Font.GothamBold
+	iconLabel.TextSize = 20
+	iconLabel.Parent = petIcon
+
+	-- Золотой эффект для Golden питомцев
+	if petInfo.name:find("Golden") then
+		task.spawn(function()
+			while iconLabel.Parent do
+				iconLabel.TextColor3 = Color3.new(1, 1, 0.5)
+				task.wait(0.5)
+				iconLabel.TextColor3 = Color3.new(1, 0.8, 0.3)
+				task.wait(0.5)
+			end
+		end)
+	end
+
+	-- Индикатор выбора
+	local selectionFrame = Instance.new("Frame")
+	selectionFrame.Size = UDim2.new(1, 0, 1, 0)
+	selectionFrame.BackgroundColor3 = Color3.new(1, 0, 0)
+	selectionFrame.BackgroundTransparency = 0.7
+	selectionFrame.BorderSizePixel = 0
+	selectionFrame.Visible = false
+	selectionFrame.Parent = petIcon
+
+	local selectionCorner = Instance.new("UICorner")
+	selectionCorner.CornerRadius = UDim.new(0, 8)
+	selectionCorner.Parent = selectionFrame
+
+	-- Обработчик клика
+	petIcon.MouseButton1Click:Connect(function()
+		if deletionMode then
+			-- Режим удаления
+			if selectedPetsForDeletion[petInfo.id] then
+				selectedPetsForDeletion[petInfo.id] = nil
+				selectionFrame.Visible = false
+			else
+				selectedPetsForDeletion[petInfo.id] = petInfo
+				selectionFrame.Visible = true
+			end
+		else
+			-- Обычный режим - выбор питомца
+			selectedPetInfo = petInfo
+
+			-- Обновляем левую панель
+			bigPetIcon.Text = icon
+			bigPetStroke.Color = rarityInfo.color
+
+			if petInfo.equipped then
+				bigEquipButton.BackgroundColor3 = Color3.new(0.8, 0.3, 0.3)
+				bigEquipButton.Text = "UNEQUIP"
+			else
+				bigEquipButton.BackgroundColor3 = Color3.new(0.2, 0.6, 0.8)
+				bigEquipButton.Text = "EQUIP"
+			end
+
+			print("📱 Выбран питомец: " .. petInfo.name)
+		end
+	end)
+
+	return petIcon
+end
+
+-- Функция обновления инвентаря
+local function updatePetInventory()
+	-- Очищаем маленькие иконки
+	for _, child in pairs(petsScroll:GetChildren()) do
+		if child:IsA("TextButton") then
+			child:Destroy()
+		end
+	end
+
+	-- Подсчитываем экипированных питомцев
+	equippedPetsCount = 0
+	for _, pet in pairs(playerPets) do
+		if pet.equipped then
+			equippedPetsCount = equippedPetsCount + 1
+		end
+	end
+
+	statusLabel.Text = equippedPetsCount .. "/3 pets equipped (Buy GamePass for 6)"
+
+	-- ИСПРАВЛЕНО: Правильное переключение кнопки
+	if equippedPetsCount > 0 then
+		equipBestButton.BackgroundColor3 = Color3.new(0.8, 0.2, 0.2) -- Красная
+		equipBestIcon.Text = "💤" -- Спящий режим = снять всех
+	else
+		equipBestButton.BackgroundColor3 = Color3.new(0.2, 0.8, 0.2) -- Зелёная
+		equipBestIcon.Text = "⭐" -- Звезда = одеть лучших
+	end
+
+	if #playerPets == 0 then
+		local emptyLabel = Instance.new("TextLabel")
+		emptyLabel.Size = UDim2.new(1, 0, 0, 100)
+		emptyLabel.BackgroundTransparency = 1
+		emptyLabel.Text = "🐾 No pets available!\nWaiting for pets to load..."
+		emptyLabel.TextColor3 = Color3.new(0.6, 0.6, 0.7)
+		emptyLabel.Font = Enum.Font.Gotham
+		emptyLabel.TextSize = 18
+		emptyLabel.Parent = petsScroll
+		return
+	end
+
+	-- Создаем маленькие иконки питомцев
+	for _, petInfo in ipairs(playerPets) do
+		local petIcon = createSmallPetIcon(petInfo)
+		petIcon.Parent = petsScroll
+	end
+
+	petsScroll.CanvasSize = UDim2.new(0, 0, 0, petGridLayout.AbsoluteContentSize.Y + 20)
+end
+
+-- ИСПРАВЛЕННЫЕ обработчики кнопок
+bigEquipButton.MouseButton1Click:Connect(function()
+	if not selectedPetInfo or not RE_EquipPet or not RE_UnequipPet then return end
+
+	if not selectedPetInfo.equipped and equippedPetsCount >= 3 then
+		-- Уведомление о лимите
+		local notifyFrame = Instance.new("Frame")
+		notifyFrame.Size = UDim2.new(0, 300, 0, 100)
+		notifyFrame.Position = UDim2.new(0.5, -150, 0.5, -50)
+		notifyFrame.BackgroundColor3 = Color3.new(0.8, 0.2, 0.2)
+		notifyFrame.BorderSizePixel = 0
+		notifyFrame.Parent = screenGui
+
+		local notifyCorner = Instance.new("UICorner")
+		notifyCorner.CornerRadius = UDim.new(0, 15)
+		notifyCorner.Parent = notifyFrame
+
+		local notifyLabel = Instance.new("TextLabel")
+		notifyLabel.Size = UDim2.new(1, 0, 1, 0)
+		notifyLabel.BackgroundTransparency = 1
+		notifyLabel.Text = "Max pets equipped!\nBuy GamePass for more slots!"
+		notifyLabel.TextColor3 = Color3.new(1, 1, 1)
+		notifyLabel.Font = Enum.Font.GothamBold
+		notifyLabel.TextSize = 16
+		notifyLabel.Parent = notifyFrame
+
+		task.spawn(function()
+			task.wait(2)
+			notifyFrame:Destroy()
+		end)
+		return
+	end
+
+	if selectedPetInfo.equipped then
+		RE_UnequipPet:FireServer(selectedPetInfo.id)
+	else
+		RE_EquipPet:FireServer(selectedPetInfo.id)
+	end
+end)
+
+deleteButton.MouseButton1Click:Connect(function()
+	if deletionMode then
+		-- Подтверждение удаления
+		local selectedCount = 0
+		for _ in pairs(selectedPetsForDeletion) do
+			selectedCount = selectedCount + 1
+		end
+
+		if selectedCount > 0 then
+			local confirmFrame = Instance.new("Frame")
+			confirmFrame.Size = UDim2.new(0, 300, 0, 150)
+			confirmFrame.Position = UDim2.new(0.5, -150, 0.5, -75)
+			confirmFrame.BackgroundColor3 = Color3.new(0.1, 0.1, 0.15)
+			confirmFrame.BorderSizePixel = 0
+			confirmFrame.Parent = screenGui
+
+			local confirmCorner = Instance.new("UICorner")
+			confirmCorner.CornerRadius = UDim.new(0, 15)
+			confirmCorner.Parent = confirmFrame
+
+			local confirmLabel = Instance.new("TextLabel")
+			confirmLabel.Size = UDim2.new(1, -20, 0, 60)
+			confirmLabel.Position = UDim2.new(0, 10, 0, 10)
+			confirmLabel.BackgroundTransparency = 1
+			confirmLabel.Text = "Delete " .. selectedCount .. " selected pets?\nThis action cannot be undone!"
+			confirmLabel.TextColor3 = Color3.new(1, 1, 1)
+			confirmLabel.Font = Enum.Font.GothamMedium
+			confirmLabel.TextSize = 14
+			confirmLabel.Parent = confirmFrame
+
+			local yesButton = Instance.new("TextButton")
+			yesButton.Size = UDim2.new(0.4, 0, 0, 40)
+			yesButton.Position = UDim2.new(0.1, 0, 1, -50)
+			yesButton.BackgroundColor3 = Color3.new(0.8, 0.2, 0.2)
+			yesButton.Text = "YES"
+			yesButton.TextColor3 = Color3.new(1, 1, 1)
+			yesButton.Font = Enum.Font.GothamBold
+			yesButton.TextSize = 16
+			yesButton.BorderSizePixel = 0
+			yesButton.Parent = confirmFrame
+
+			local yesCorner = Instance.new("UICorner")
+			yesCorner.CornerRadius = UDim.new(0, 10)
+			yesCorner.Parent = yesButton
+
+			local noButton = Instance.new("TextButton")
+			noButton.Size = UDim2.new(0.4, 0, 0, 40)
+			noButton.Position = UDim2.new(0.5, 0, 1, -50)
+			noButton.BackgroundColor3 = Color3.new(0.2, 0.6, 0.2)
+			noButton.Text = "NO"
+			noButton.TextColor3 = Color3.new(1, 1, 1)
+			noButton.Font = Enum.Font.GothamBold
+			noButton.TextSize = 16
+			noButton.BorderSizePixel = 0
+			noButton.Parent = confirmFrame
+
+			local noCorner = Instance.new("UICorner")
+			noCorner.CornerRadius = UDim.new(0, 10)
+			noCorner.Parent = noButton
+
+			yesButton.MouseButton1Click:Connect(function()
+				-- ИСПРАВЛЕНО: Правильное удаление
+				for petId in pairs(selectedPetsForDeletion) do
+					if RE_DeletePet then
+						RE_DeletePet:FireServer(petId)
+					end
+				end
+
+				selectedPetsForDeletion = {}
+				deletionMode = false
+				deleteButton.BackgroundColor3 = Color3.new(0.8, 0.2, 0.2)
+				confirmFrame:Destroy()
+				updatePetInventory()
+			end)
+
+			noButton.MouseButton1Click:Connect(function()
+				confirmFrame:Destroy()
+			end)
+		end
+	else
+		-- Включаем режим удаления
+		deletionMode = true
+		selectedPetsForDeletion = {}
+		deleteButton.BackgroundColor3 = Color3.new(0.5, 0.1, 0.1)
+		updatePetInventory()
+	end
+end)
+
+-- ИСПРАВЛЕНО: Правильная работа кнопки лучших питомцев
+equipBestButton.MouseButton1Click:Connect(function()
+	if equippedPetsCount > 0 then
+		-- Снимаем всех питомцев
+		if RE_UnequipAll then
+			RE_UnequipAll:FireServer()
+		end
+	else
+		-- Одеваем лучших питомцев
+		if RE_EquipBest then
+			RE_EquipBest:FireServer()
+		end
+	end
+end)
+
+inventoryButton.MouseButton1Click:Connect(function()
+	mainPetFrame.Visible = not mainPetFrame.Visible
+
+	if not mainPetFrame.Visible then
+		deletionMode = false
+		selectedPetsForDeletion = {}
+		deleteButton.BackgroundColor3 = Color3.new(0.8, 0.2, 0.2)
+	end
+end)
+
+closeButton.MouseButton1Click:Connect(function()
+	mainPetFrame.Visible = false
+	deletionMode = false
+	selectedPetsForDeletion = {}
+	deleteButton.BackgroundColor3 = Color3.new(0.8, 0.2, 0.2)
+end)
+
+-- Клавиша P
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+	if gameProcessed then return end
+	if input.KeyCode == Enum.KeyCode.P then
+		mainPetFrame.Visible = not mainPetFrame.Visible
+
+		if not mainPetFrame.Visible then
+			deletionMode = false
+			selectedPetsForDeletion = {}
+			deleteButton.BackgroundColor3 = Color3.new(0.8, 0.2, 0.2)
+		end
+	end
+end)
+
+-- Система умных кликов (встроена в GUI)
+local mouse = player:GetMouse()
+local clickCount = 0
+local lastTarget = nil
+local isHolding = false
+local holdStartTime = 0
+
+local function isAttackableObject(obj)
+	if not obj or not obj.Parent then return false end
+
+	if obj:GetAttribute("CurrentHP") then return true end
+	if obj.Name:lower():find("coin") then return true end
+	if obj.Name:lower():find("chest") then return true end
+	if obj.Name:lower():find("сундук") then return true end
+	if obj.Name:lower():find("block") then return true end
+	if obj.Name:lower():find("ore") then return true end
+	if obj.Name:lower():find("crate") then return true end
+	if obj.Name:lower():find("box") then return true end
+
+	return false
+end
+
+local function getTargetFromRaycast(maxDistance)
+	maxDistance = maxDistance or 150
+
+	local camera = workspace.CurrentCamera
+	local unitRay = camera:ScreenPointToRay(mouse.X, mouse.Y)
+
+	local raycastParams = RaycastParams.new()
+	raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
+	raycastParams.FilterDescendantsInstances = {player.Character}
+
+	local raycastResult = workspace:Raycast(unitRay.Origin, unitRay.Direction * maxDistance, raycastParams)
+
+	if raycastResult then
+		local hitPart = raycastResult.Instance
+		local hitObject = hitPart.Parent
+
+		if isAttackableObject(hitObject) then
+			return hitObject
+		end
+	end
+
+	return nil
+end
+
+mouse.Button1Down:Connect(function()
+	isHolding = true
+	holdStartTime = tick()
+end)
+
+mouse.Button1Up:Connect(function()
+	if not isHolding then return end
+
+	isHolding = false
+	local holdDuration = tick() - holdStartTime
+
+	local target = getTargetFromRaycast(150)
+
+	if target then
+		if holdDuration >= 0.25 then
+			-- Зажатие - все питомцы атакуют
+			print("🔥 HOLD ATTACK - sending all pets to " .. target.Name)
+
+			if RE_SmartAttack then
+				for i = 1, equippedPetsCount do
+					RE_SmartAttack:FireServer(target, i)
+					task.wait(0.08)
+				end
+			end
+
+			clickCount = 0
+			lastTarget = target
+		else
+			-- ИСПРАВЛЕНО: 1 клик = 1 питомец
+			if target == lastTarget then
+				clickCount = clickCount + 1
+			else
+				clickCount = 1
+				lastTarget = target
+			end
+
+			print("🎯 Click #" .. clickCount .. " on " .. target.Name .. " (equipped: " .. equippedPetsCount .. ")")
+
+			if clickCount > equippedPetsCount then
+				-- Отзываем всех питомцев
+				print("🔙 RECALL - all pets return")
+
+				if RE_RecallAllPets then
+					RE_RecallAllPets:FireServer()
+				end
+
+				clickCount = 0
+				lastTarget = nil
+			else
+				-- ИСПРАВЛЕНО: Отправляем ТОЛЬКО 1 питомца
+				if RE_SmartAttack then
+					RE_SmartAttack:FireServer(target, clickCount)
+				end
+			end
+		end
+	else
+		print("❌ Target too far or not attackable")
+	end
+end)
+
+-- Клавиша R для отзыва
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+	if gameProcessed then return end
+
+	if input.KeyCode == Enum.KeyCode.R then
+		print("🔙 [R] Recall all pets")
+
+		if RE_RecallAllPets then
+			RE_RecallAllPets:FireServer()
+		end
+
+		clickCount = 0
+		lastTarget = nil
+	end
+end)
+
+-- Обработчики событий от сервера
+task.spawn(function()
+	while not RE_UpdatePets or not RE_UpdateCoins do
+		task.wait(0.1)
+	end
+
+	RE_UpdatePets.OnClientEvent:Connect(function(pets, equipped)
+		playerPets = pets or {}
+		updatePetInventory()
+		print("📦 Pets updated: " .. #playerPets)
+	end)
+
+	RE_UpdateCoins.OnClientEvent:Connect(function(coins)
+		playerCoins = coins or 0
+		coinsLabel.Text = tostring(playerCoins)
+		print("💰 Coins updated: " .. playerCoins)
+	end)
+
+	print("✅ Ultimate GUI connected")
+end)
+
+print("✅ Ultimate Pet GUI loaded - NO CONFLICTS!")

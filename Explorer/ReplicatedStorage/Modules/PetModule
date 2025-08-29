@@ -1,0 +1,222 @@
+-- PetModule.lua - Поместите в ReplicatedStorage
+-- Система питомцев с данными и логикой
+
+local PetModule = {}
+
+-- ДАННЫЕ ПИТОМЦЕВ ПО ЗОНАМ И РЕДКОСТИ
+PetModule.PetData = {
+	-- ЗОНА 1 - НАЧАЛЬНЫЕ ПИТОМЦЫ
+	Zone1 = {
+		{name = "Bunny", damage = 1, coinMultiplier = 1.0, rarity = 60, color = Color3.new(1, 1, 1)},
+		{name = "Doggy", damage = 2, coinMultiplier = 1.1, rarity = 30, color = Color3.new(0.6, 0.4, 0.2)},
+		{name = "Kitty", damage = 3, coinMultiplier = 1.2, rarity = 9, color = Color3.new(0, 0, 0)},
+		{name = "Golden Bunny", damage = 8, coinMultiplier = 2.0, rarity = 1, color = Color3.new(1, 0.8, 0)}
+	},
+
+	-- ЗОНА 2 - СРЕДНИЕ ПИТОМЦЫ
+	Zone2 = {
+		{name = "Doggy", damage = 2, coinMultiplier = 1.1, rarity = 40, color = Color3.new(0.6, 0.4, 0.2)},
+		{name = "Kitty", damage = 3, coinMultiplier = 1.2, rarity = 25, color = Color3.new(0, 0, 0)},
+		{name = "Golden Bunny", damage = 8, coinMultiplier = 2.0, rarity = 20, color = Color3.new(1, 0.8, 0)},
+		{name = "Golden Doggy", damage = 15, coinMultiplier = 2.5, rarity = 10, color = Color3.new(1, 0.7, 0)},
+		{name = "Golden Kitty", damage = 25, coinMultiplier = 3.0, rarity = 4, color = Color3.new(0.9, 0.7, 0)},
+		{name = "Golden Rabbit", damage = 50, coinMultiplier = 5.0, rarity = 1, color = Color3.new(1, 0.9, 0.1)}
+	},
+
+	-- ЗОНА 3 - МОЩНЫЕ ПИТОМЦЫ
+	Zone3 = {
+		{name = "Golden Doggy", damage = 15, coinMultiplier = 2.5, rarity = 35, color = Color3.new(1, 0.7, 0)},
+		{name = "Golden Kitty", damage = 25, coinMultiplier = 3.0, rarity = 25, color = Color3.new(0.9, 0.7, 0)},
+		{name = "Golden Rabbit", damage = 50, coinMultiplier = 5.0, rarity = 25, color = Color3.new(1, 0.9, 0.1)},
+		{name = "Rainbow Bunny", damage = 100, coinMultiplier = 8.0, rarity = 10, color = Color3.new(1, 0, 1)},
+		{name = "Rainbow Doggy", damage = 200, coinMultiplier = 15.0, rarity = 4, color = Color3.new(0, 1, 1)},
+		{name = "Diamond Pet", damage = 500, coinMultiplier = 25.0, rarity = 1, color = Color3.new(0.7, 0.9, 1)}
+	}
+}
+
+-- ФУНКЦИЯ ПОЛУЧЕНИЯ СЛУЧАЙНОГО ПИТОМЦА ИЗ ЗОНЫ
+function PetModule.GetRandomPet(zoneName)
+	local zoneData = PetModule.PetData[zoneName]
+	if not zoneData then
+		warn("Зона " .. zoneName .. " не найдена!")
+		return nil
+	end
+
+	-- Считаем общую редкость
+	local totalRarity = 0
+	for _, petData in pairs(zoneData) do
+		totalRarity = totalRarity + petData.rarity
+	end
+
+	-- Случайный выбор
+	local random = math.random() * totalRarity
+	local current = 0
+
+	for _, petData in pairs(zoneData) do
+		current = current + petData.rarity
+		if random <= current then
+			return petData
+		end
+	end
+
+	-- Возвращаем первого в случае ошибки
+	return zoneData[1]
+end
+
+-- ФУНКЦИЯ СОЗДАНИЯ ФИЗИЧЕСКОГО ПИТОМЦА
+function PetModule.CreatePetModel(petData, position)
+	local pet = Instance.new("Model")
+	pet.Name = petData.name
+
+	-- Основная часть питомца
+	local body = Instance.new("Part")
+	body.Name = "Body"
+	body.Size = Vector3.new(2, 2, 3)
+	body.Material = Enum.Material.Neon
+	body.BrickColor = BrickColor.new(petData.color)
+	body.Shape = Enum.PartType.Block
+	body.Anchored = false
+	body.CanCollide = false
+	body.Position = position
+	body.Parent = pet
+
+	-- Голова
+	local head = Instance.new("Part")
+	head.Name = "Head" 
+	head.Size = Vector3.new(1.5, 1.5, 1.5)
+	head.Material = Enum.Material.Neon
+	head.BrickColor = BrickColor.new(petData.color)
+	head.Shape = Enum.PartType.Ball
+	head.Anchored = false
+	head.CanCollide = false
+	head.Parent = pet
+
+	-- Соединяем голову с телом
+	local headWeld = Instance.new("WeldConstraint")
+	headWeld.Part0 = body
+	headWeld.Part1 = head
+	headWeld.Parent = body
+
+	-- Смещаем голову вперед
+	local headOffset = Instance.new("Attachment")
+	headOffset.Position = Vector3.new(0, 0.5, -1.5)
+	headOffset.Parent = body
+
+	local headAttach = Instance.new("Attachment") 
+	headAttach.Parent = head
+
+	-- BodyVelocity для движения
+	local bodyVelocity = Instance.new("BodyVelocity")
+	bodyVelocity.MaxForce = Vector3.new(4000, 4000, 4000)
+	bodyVelocity.Velocity = Vector3.new(0, 0, 0)
+	bodyVelocity.Parent = body
+
+	-- BodyAngularVelocity для поворотов
+	local bodyAngularVelocity = Instance.new("BodyAngularVelocity")
+	bodyAngularVelocity.MaxTorque = Vector3.new(0, 4000, 0)
+	bodyAngularVelocity.AngularVelocity = Vector3.new(0, 0, 0)
+	bodyAngularVelocity.Parent = body
+
+	-- Устанавливаем PrimaryPart
+	pet.PrimaryPart = body
+
+	-- Добавляем атрибуты питомца
+	pet:SetAttribute("Damage", petData.damage)
+	pet:SetAttribute("CoinMultiplier", petData.coinMultiplier)
+	pet:SetAttribute("PetName", petData.name)
+
+	-- Добавляем тэг для питомца
+	local tag = Instance.new("StringValue")
+	tag.Name = "PetTag"
+	tag.Value = "Pet"
+	tag.Parent = pet
+
+	return pet
+end
+
+-- СИСТЕМА СЛЕДОВАНИЯ ЗА ИГРОКОМ
+function PetModule.FollowPlayer(pet, player)
+	local character = player.Character
+	if not character or not character.PrimaryPart then return end
+
+	local petBody = pet.PrimaryPart
+	if not petBody then return end
+
+	local bodyVelocity = petBody:FindFirstChild("BodyVelocity")
+	local bodyAngularVelocity = petBody:FindFirstChild("BodyAngularVelocity")
+
+	if not bodyVelocity or not bodyAngularVelocity then return end
+
+	-- Вычисляем позицию следования (сзади и сбоку от игрока)
+	local playerPos = character.PrimaryPart.Position
+	local playerLook = character.PrimaryPart.CFrame.LookVector
+	local followOffset = Vector3.new(math.random(-3, 3), 0, 5) -- Случайное смещение сбоку
+	local targetPos = playerPos - playerLook * 5 + followOffset
+
+	-- Расстояние до игрока
+	local distance = (petBody.Position - targetPos).Magnitude
+
+	if distance > 10 then
+		-- Телепортируем питомца если он слишком далеко
+		petBody.CFrame = CFrame.new(targetPos)
+		bodyVelocity.Velocity = Vector3.new(0, 0, 0)
+	elseif distance > 3 then
+		-- Двигаем питомца к целевой позиции
+		local direction = (targetPos - petBody.Position).Unit
+		bodyVelocity.Velocity = direction * math.min(distance * 2, 16)
+
+		-- Поворачиваем питомца в сторону движения
+		local lookDirection = direction * Vector3.new(1, 0, 1)
+		if lookDirection.Magnitude > 0 then
+			bodyAngularVelocity.AngularVelocity = Vector3.new(0, math.rad(45), 0)
+		end
+	else
+		-- Останавливаем питомца
+		bodyVelocity.Velocity = Vector3.new(0, 0, 0)
+		bodyAngularVelocity.AngularVelocity = Vector3.new(0, 0, 0)
+	end
+end
+
+-- АТАКА ПИТОМЦА НА ОБЪЕКТ
+function PetModule.AttackObject(pet, targetObject)
+	if not pet or not targetObject or not targetObject.Parent then return end
+
+	local petBody = pet.PrimaryPart
+	if not petBody then return end
+
+	local damage = pet:GetAttribute("Damage") or 1
+	local coinMultiplier = pet:GetAttribute("CoinMultiplier") or 1.0
+
+	-- Используем глобальную систему урона из спавнера
+	if _G.SpawnerAPI and _G.SpawnerAPI.TakeDamage then
+		local destroyed, reward = _G.SpawnerAPI.TakeDamage(targetObject, damage)
+
+		if destroyed then
+			-- Возвращаем награду с учетом множителя питомца
+			return math.floor(reward * coinMultiplier)
+		end
+	end
+
+	return 0
+end
+
+-- ПОКАЗАТЬ ШАНСЫ ВЫПАДЕНИЯ ПИТОМЦЕВ
+function PetModule.ShowPetChances(zoneName)
+	local zoneData = PetModule.PetData[zoneName]
+	if not zoneData then return end
+
+	local total = 0
+	for _, petData in pairs(zoneData) do
+		total = total + petData.rarity
+	end
+
+	print("=== ШАНСЫ ПИТОМЦЕВ " .. zoneName .. " ===")
+	for _, petData in pairs(zoneData) do
+		local percent = (petData.rarity / total) * 100
+		print(string.format("%s: %.1f%% (Урон:%d, Множитель:%.1fx)", 
+			petData.name, percent, petData.damage, petData.coinMultiplier))
+	end
+	print("=====================================")
+end
+
+return PetModule

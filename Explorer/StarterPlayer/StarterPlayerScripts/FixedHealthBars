@@ -1,0 +1,196 @@
+-- FixedHealthBars.lua - ИСПРАВЛЕННЫЕ HP бары без ошибок
+-- Поместите в StarterPlayer.StarterPlayerScripts (удалите старые HP скрипты)
+
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
+
+print("💚 Fixed Health Bars Loading...")
+
+local healthBars = {}
+
+-- Создание простого надежного HP бара
+local function createFixedHealthBar(object)
+	if healthBars[object] then return healthBars[object] end
+
+	local mainPart = object.PrimaryPart or object:FindFirstChildOfClass("BasePart")
+	if not mainPart then return nil end
+
+	-- Вычисляем высоту объекта
+	local objectHeight = 0
+	for _, part in pairs(object:GetDescendants()) do
+		if part:IsA("BasePart") then
+			local partTop = part.Position.Y + (part.Size.Y / 2)
+			objectHeight = math.max(objectHeight, partTop - mainPart.Position.Y)
+		end
+	end
+
+	-- Attachment над объектом
+	local attachment = Instance.new("Attachment")
+	attachment.Name = "FixedHPBar"
+	attachment.Position = Vector3.new(0, objectHeight + 3, 0)
+	attachment.Parent = mainPart
+
+	-- Billboard GUI
+	local hpGui = Instance.new("BillboardGui")
+	hpGui.Name = "FixedHealthBar"
+	hpGui.Size = UDim2.new(0, 110, 0, 30)
+	hpGui.StudsOffset = Vector3.new(0, 1, 0)
+	hpGui.Parent = attachment
+
+	-- Простой фон
+	local background = Instance.new("Frame")
+	background.Size = UDim2.new(1, 0, 0.7, 0)
+	background.Position = UDim2.new(0, 0, 0.1, 0)
+	background.BackgroundColor3 = Color3.new(0.15, 0.15, 0.2)
+	background.BorderSizePixel = 0
+	background.Parent = hpGui
+
+	local bgCorner = Instance.new("UICorner")
+	bgCorner.CornerRadius = UDim.new(0, 8)
+	bgCorner.Parent = background
+
+	local bgStroke = Instance.new("UIStroke")
+	bgStroke.Color = Color3.new(0.4, 0.5, 0.6)
+	bgStroke.Thickness = 2
+	bgStroke.Parent = background
+
+	-- HP полоска (ИСПРАВЛЕНО: без градиента)
+	local healthBar = Instance.new("Frame")
+	healthBar.Size = UDim2.new(1, -4, 1, -4)
+	healthBar.Position = UDim2.new(0, 2, 0, 2)
+	healthBar.BackgroundColor3 = Color3.new(0.2, 0.8, 0.3)
+	healthBar.BorderSizePixel = 0
+	healthBar.Parent = background
+
+	local barCorner = Instance.new("UICorner")
+	barCorner.CornerRadius = UDim.new(0, 6)
+	barCorner.Parent = healthBar
+
+	-- Текст HP
+	local hpText = Instance.new("TextLabel")
+	hpText.Size = UDim2.new(1, 0, 0.3, 0)
+	hpText.Position = UDim2.new(0, 0, 0.8, 0)
+	hpText.BackgroundTransparency = 1
+	hpText.Text = "100 / 100"
+	hpText.TextColor3 = Color3.new(1, 1, 1)
+	hpText.Font = Enum.Font.GothamMedium
+	hpText.TextSize = 12
+	hpText.TextStrokeTransparency = 0
+	hpText.TextStrokeColor3 = Color3.new(0, 0, 0)
+	hpText.Parent = hpGui
+
+	local hpBarData = {
+		gui = hpGui,
+		bar = healthBar,
+		text = hpText,
+		attachment = attachment,
+		object = object
+	}
+
+	healthBars[object] = hpBarData
+	return hpBarData
+end
+
+-- Обновление HP бара (ИСПРАВЛЕНО: без градиента)
+local function updateHealthBar(hpBarData, currentHP, maxHP)
+	if not hpBarData or not hpBarData.gui.Parent then return end
+
+	local healthPercent = math.max(0, math.min(1, currentHP / maxHP))
+
+	-- Плавное изменение размера
+	local newSize = UDim2.new(healthPercent, -4, 1, -4)
+	local sizeTween = TweenService:Create(
+		hpBarData.bar,
+		TweenInfo.new(0.3, Enum.EasingStyle.Quad),
+		{Size = newSize}
+	)
+	sizeTween:Play()
+
+	-- Простые цвета без градиента
+	local color = Color3.new(0.2, 0.8, 0.3) -- Зеленый
+	if healthPercent < 0.5 then
+		color = Color3.new(1, 0.8, 0.2) -- Желтый
+	end
+	if healthPercent < 0.25 then
+		color = Color3.new(1, 0.3, 0.2) -- Красный
+	end
+
+	local colorTween = TweenService:Create(
+		hpBarData.bar,
+		TweenInfo.new(0.25, Enum.EasingStyle.Quad),
+		{BackgroundColor3 = color}
+	)
+	colorTween:Play()
+
+	-- Обычные цифры HP
+	hpBarData.text.Text = math.ceil(currentHP) .. " / " .. maxHP
+end
+
+-- Показываем HP бар только при атаке
+local function showHealthBarForObject(object)
+	if not object:GetAttribute("CurrentHP") or not object:GetAttribute("MaxHP") then return end
+
+	local hpBarData = createFixedHealthBar(object)
+	if hpBarData then
+		hpBarData.gui.Enabled = true
+	end
+end
+
+-- Скрываем HP бар
+local function hideHealthBarForObject(object)
+	if healthBars[object] then
+		healthBars[object].gui.Enabled = false
+	end
+end
+
+-- Главный цикл обновления
+RunService.Heartbeat:Connect(function()
+	for object, hpBarData in pairs(healthBars) do
+		if object.Parent and hpBarData.gui.Parent and hpBarData.gui.Enabled then
+			local currentHP = object:GetAttribute("CurrentHP")
+			local maxHP = object:GetAttribute("MaxHP")
+
+			if currentHP and maxHP and maxHP > 0 then
+				updateHealthBar(hpBarData, currentHP, maxHP)
+			end
+		elseif not object.Parent then
+			if hpBarData.attachment then
+				hpBarData.attachment:Destroy()
+			end
+			healthBars[object] = nil
+		end
+	end
+end)
+
+-- Отслеживаем обводку объектов
+task.spawn(function()
+	while true do
+		task.wait(0.5)
+
+		for _, obj in pairs(workspace:GetDescendants()) do
+			if obj:IsA("Model") and obj:GetAttribute("CurrentHP") then
+				local hasHighlight = obj:FindFirstChild("AttackOutline")
+				local hasHPBar = healthBars[obj]
+
+				if hasHighlight and (not hasHPBar or not healthBars[obj].gui.Enabled) then
+					showHealthBarForObject(obj)
+				elseif not hasHighlight and hasHPBar and healthBars[obj].gui.Enabled then
+					task.wait(1)
+					hideHealthBarForObject(obj)
+				end
+			end
+		end
+	end
+end)
+
+-- Очистка
+workspace.DescendantRemoving:Connect(function(obj)
+	if healthBars[obj] then
+		if healthBars[obj].attachment then
+			healthBars[obj].attachment:Destroy()
+		end
+		healthBars[obj] = nil
+	end
+end)
+
+print("✅ Fixed Health Bars loaded!")
