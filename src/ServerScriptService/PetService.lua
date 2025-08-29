@@ -52,15 +52,32 @@ local function initializePlayer(player)
         playerPets[player.UserId] = {}
         equippedPets[player.UserId] = {}
         
-        -- Give starter pets
-        table.insert(playerPets[player.UserId], {
-            id = 1,
-            petId = 1,
-            name = "Starter Puppy",
-            rarity = "Common",
-            stats = {strength = 10, speed = 5},
-            equipped = false
-        })
+        -- Give starter pets for testing
+        local starterPets = {
+            {id = 1, name = "Starter Puppy", rarity = "Common", stats = {strength = 10, speed = 5}},
+            {id = 2, name = "Starter Kitten", rarity = "Common", stats = {strength = 8, speed = 7}},
+            {id = 3, name = "Lucky Wolf", rarity = "Rare", stats = {strength = 25, speed = 15}},
+            {id = 4, name = "Magic Dragon", rarity = "Legendary", stats = {strength = 50, speed = 20}},
+            {id = 5, name = "Fire Tiger", rarity = "Epic", stats = {strength = 40, speed = 25}},
+            {id = 6, name = "Phoenix Spirit", rarity = "Mythic", stats = {strength = 80, speed = 35}}
+        }
+        
+        for i, petData in ipairs(starterPets) do
+            table.insert(playerPets[player.UserId], {
+                id = petData.id,
+                petId = petData.id,
+                name = petData.name,
+                rarity = petData.rarity,
+                stats = petData.stats,
+                equipped = i <= 2 -- Equip first 2 pets by default
+            })
+            
+            if i <= 2 then
+                table.insert(equippedPets[player.UserId], petData.id)
+            end
+        end
+        
+        print("Initialized player " .. player.Name .. " with " .. #starterPets .. " starter pets")
     end
 end
 
@@ -147,7 +164,19 @@ petRemotes.DeletePet.OnServerEvent:Connect(function(player, petId)
 end)
 
 -- Initialize existing players
-Players.PlayerAdded:Connect(initializePlayer)
+Players.PlayerAdded:Connect(function(player)
+    print("Player " .. player.Name .. " joined - initializing pets...")
+    initializePlayer(player)
+    
+    -- Notify player of equipped pets after a delay
+    spawn(function()
+        wait(3)
+        if equippedPets[player.UserId] and #equippedPets[player.UserId] > 0 then
+            petRemotes.UpdatePetPositions:FireClient(player, equippedPets[player.UserId])
+        end
+    end)
+end)
+
 for _, player in pairs(Players:GetPlayers()) do
     initializePlayer(player)
 end

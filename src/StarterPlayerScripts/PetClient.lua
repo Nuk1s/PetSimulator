@@ -163,19 +163,34 @@ player.CharacterAdded:Connect(function(newCharacter)
     character = newCharacter
     humanoidRootPart = character:WaitForChild("HumanoidRootPart")
     
-    -- Re-request pet positions after respawn
-    wait(1)
-    local allPets = petRemotes.GetPets:InvokeServer()
-    local equippedPetIds = {}
-    for _, pet in ipairs(allPets) do
-        if pet.equipped then
-            table.insert(equippedPetIds, pet.id)
-        end
-    end
+    print("Character respawned - reinitializing pets...")
     
-    if #equippedPetIds > 0 then
-        petRemotes.UpdatePetPositions:FireServer(equippedPetIds)
-    end
+    -- Re-request pet positions after respawn
+    spawn(function()
+        wait(2)
+        local allPets = petRemotes.GetPets:InvokeServer()
+        local equippedPetIds = {}
+        for _, pet in ipairs(allPets) do
+            if pet.equipped then
+                table.insert(equippedPetIds, pet.id)
+            end
+        end
+        
+        print("Found " .. #equippedPetIds .. " equipped pets after respawn")
+        
+        if #equippedPetIds > 0 then
+            -- Clear old models first
+            for _, petModel in ipairs(petModels) do
+                if petModel and petModel.Parent then
+                    petModel:Destroy()
+                end
+            end
+            petModels = {}
+            
+            -- Request server to update positions
+            petRemotes.UpdatePetPositions:FireServer(equippedPetIds)
+        end
+    end)
 end)
 
 -- Main update loop for pet positioning
