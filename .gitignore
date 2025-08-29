@@ -1,0 +1,31 @@
+# Roblox build artifacts and cache
+*.rbxl.lock
+*.rbxlx.lock
+*.rbxl.bak
+*.rbxlx.bak
+
+# Temporary files
+/tmp/
+.temp/
+
+# IDE files
+.vscode/
+.idea/
+*.suo
+*.user
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Rojo build output
+*.rbxm
+*.rbxmx
+
+# Logs
+*.log
